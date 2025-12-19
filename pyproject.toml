@@ -1,0 +1,158 @@
+[tool.poe.tasks]
+# ============================================
+# DOCKER COMMANDS
+# ============================================
+
+up = "docker compose up --build"
+up-d = "docker compose up -d --build"
+down = "docker compose down"
+down-v = "docker compose down -v"
+logs = "docker compose logs -f"
+ps = "docker compose ps"
+
+# Logs cho một service cụ thể
+logs-service = { shell = "docker compose logs -f {argv}" }
+
+# Restart một service
+restart = { shell = "docker compose restart {argv}" }
+
+# Build một service
+build-service = { shell = "docker compose build {argv}" }
+
+# ============================================
+# GRADLE BUILD COMMANDS
+# ============================================
+
+build-all = """
+    cd eureka-server && ./gradlew build -x test && \
+    cd ../apigateway && ./gradlew build -x test && \
+    cd ../user-service && ./gradlew build -x test && \
+    cd ../inventory-service && ./gradlew build -x test && \
+    cd ../ticket-service && ./gradlew build -x test && \
+    cd ../payment-service && ./gradlew build -x test && \
+    cd ../notification-service && ./gradlew build -x test
+"""
+
+build = { shell = "cd {argv} && ./gradlew build -x test" }
+
+clean-all = """
+    cd eureka-server && ./gradlew clean && \
+    cd ../apigateway && ./gradlew clean && \
+    cd ../user-service && ./gradlew clean && \
+    cd ../inventory-service && ./gradlew clean && \
+    cd ../ticket-service && ./gradlew clean && \
+    cd ../payment-service && ./gradlew clean && \
+    cd ../notification-service && ./gradlew clean
+"""
+
+# ============================================
+# RUN SERVICES LOCALLY
+# ============================================
+
+run-eureka = "cd eureka-server && ./gradlew bootRun"
+run-gateway = "cd apigateway && ./gradlew bootRun"
+run-user = "cd user-service && ./gradlew bootRun"
+run-inventory = "cd inventory-service && ./gradlew bootRun"
+run-ticket = "cd ticket-service && ./gradlew bootRun"
+run-payment = "cd payment-service && ./gradlew bootRun"
+run-notification = "cd notification-service && ./gradlew bootRun"
+
+# ============================================
+# DATABASE COMMANDS
+# ============================================
+
+db-connect = "docker exec -it train-ticket-postgres psql -U postgres -d trainticket"
+
+db-backup = { shell = "docker exec train-ticket-postgres pg_dump -U postgres trainticket > backup_$(date +%Y%m%d_%H%M%S).sql" }
+
+db-restore = { shell = "docker exec -i train-ticket-postgres psql -U postgres trainticket < {argv}" }
+
+# ============================================
+# REDIS COMMANDS
+# ============================================
+
+redis-cli = "docker exec -it train-ticket-redis redis-cli"
+redis-flush = "docker exec train-ticket-redis redis-cli FLUSHALL"
+
+# ============================================
+# RABBITMQ COMMANDS
+# ============================================
+
+rabbitmq-ui = { shell = "open http://localhost:15672 || xdg-open http://localhost:15672 || echo 'RabbitMQ UI: http://localhost:15672'" }
+
+# ============================================
+# HEALTH CHECKS
+# ============================================
+
+health = """
+    echo "Checking service health..." && \
+    echo "Eureka: http://localhost:8761" && \
+    curl -s http://localhost:8761/actuator/health || echo "Eureka: DOWN" && \
+    echo "" && \
+    echo "API Gateway: http://localhost:8080/actuator/health" && \
+    curl -s http://localhost:8080/actuator/health || echo "API Gateway: DOWN" && \
+    echo "" && \
+    echo "User Service: http://localhost:8081/actuator/health" && \
+    curl -s http://localhost:8081/actuator/health || echo "User Service: DOWN" && \
+    echo "" && \
+    echo "Inventory Service: http://localhost:8082/actuator/health" && \
+    curl -s http://localhost:8082/actuator/health || echo "Inventory Service: DOWN" && \
+    echo "" && \
+    echo "Ticket Service: http://localhost:8083/actuator/health" && \
+    curl -s http://localhost:8083/actuator/health || echo "Ticket Service: DOWN" && \
+    echo "" && \
+    echo "Payment Service: http://localhost:8084/actuator/health" && \
+    curl -s http://localhost:8084/actuator/health || echo "Payment Service: DOWN" && \
+    echo "" && \
+    echo "Notification Service: http://localhost:8085/actuator/health" && \
+    curl -s http://localhost:8085/actuator/health || echo "Notification Service: DOWN"
+"""
+
+# ============================================
+# UTILITY COMMANDS
+# ============================================
+
+eureka-ui = { shell = "open http://localhost:8761 || xdg-open http://localhost:8761 || echo 'Eureka UI: http://localhost:8761'" }
+
+containers = "docker ps --filter name=train-ticket"
+
+clean-containers = "docker container prune -f"
+clean-images = "docker image prune -a -f"
+clean-all-docker = "docker system prune -a --volumes -f"
+
+# ============================================
+# DEVELOPMENT WORKFLOW
+# ============================================
+
+infra = "docker compose up -d postgres redis rabbitmq"
+
+infra-eureka = """
+    docker compose up -d postgres redis rabbitmq eureka-server && \
+    echo "Waiting for services to be ready..." && \
+    sleep 10 && \
+    echo "Infrastructure ready!"
+"""
+
+quick-start = """
+    poe infra-eureka && \
+    echo "Quick start complete! You can now run services locally."
+"""
+
+test = { shell = "cd {argv} && ./gradlew test" }
+
+test-all = """
+    for service in eureka-server apigateway user-service inventory-service ticket-service payment-service notification-service; do
+        if [ -d "$service" ]; then
+            echo "Testing $service..."
+            cd "$service" && ./gradlew test || true
+            cd ..
+        fi
+    done
+"""
+
+# ============================================
+# HELP
+# ============================================
+
+help = "poe --help"
+
