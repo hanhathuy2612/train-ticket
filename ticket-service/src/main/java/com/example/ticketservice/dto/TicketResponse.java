@@ -1,8 +1,9 @@
 package com.example.ticketservice.dto;
 
-import com.example.ticketservice.entity.Ticket;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.example.ticketservice.entity.Ticket;
 
 public class TicketResponse {
 	private Long id;
@@ -100,4 +101,3 @@ public class TicketResponse {
 		this.updatedAt = updatedAt;
 	}
 }
-

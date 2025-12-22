@@ -30,18 +30,22 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 	implementation 'org.springframework.cloud:spring-cloud-starter-loadbalancer'
-	
+
 	// PostgreSQL
 	runtimeOnly 'org.postgresql:postgresql'
-	
+
 	// RabbitMQ
 	implementation 'org.springframework.boot:spring-boot-starter-amqp'
-	
+
 	// Feign Client for service communication
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
-	
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Lombok
+	implementation 'org.projectlombok:lombok:1.18.36'
+	annotationProcessor 'org.projectlombok:lombok:1.18.36'
 }
 
 dependencyManagement {
