@@ -1,23 +1,24 @@
 package com.example.ticketservice.service;
 
-import com.example.ticketservice.client.InventoryServiceClient;
-import com.example.ticketservice.dto.BookTicketRequest;
-import com.example.ticketservice.dto.TicketResponse;
-import com.example.ticketservice.entity.Ticket;
-import com.example.ticketservice.repository.TicketRepository;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.ticketservice.client.InventoryServiceClient;
+import com.example.ticketservice.dto.BookTicketRequest;
+import com.example.ticketservice.dto.TicketResponse;
+import com.example.ticketservice.entity.Ticket;
+import com.example.ticketservice.repository.TicketRepository;
 
 @Service
 @Transactional
@@ -30,14 +31,14 @@ public class TicketService {
 	private InventoryServiceClient inventoryServiceClient;
 
 	@Autowired
-	private RabbitTemplate rabbitTemplate;
+	private KafkaTemplate<String, Object> kafkaTemplate;
 
 	@Autowired
 	private RedisTemplate<String, Object> redisTemplate;
 
 	private static final String TICKET_CACHE_PREFIX = "ticket:";
 	private static final String USER_TICKETS_CACHE_PREFIX = "user:tickets:";
-	private static final String BOOKING_EXCHANGE = "booking.exchange";
+	private static final String BOOKING_TOPIC = "booking-events";
 	private static final String NOTIFICATION_ROUTING_KEY = "notification.booking";
 
 	@Cacheable(value = "tickets", key = "#id")
@@ -58,8 +59,7 @@ public class TicketService {
 		// Check availability
 		Map<String, Object> availability = inventoryServiceClient.checkAvailability(
 				request.getTrainId(),
-				request.getDepartureDate()
-		);
+				request.getDepartureDate());
 
 		Integer availableSeats = (Integer) availability.get("availableSeats");
 		if (availableSeats == null || availableSeats < request.getNumberOfSeats()) {
@@ -94,7 +94,7 @@ public class TicketService {
 		notificationEvent.put("userId", userId);
 		notificationEvent.put("trainId", request.getTrainId());
 		notificationEvent.put("numberOfSeats", request.getNumberOfSeats());
-		rabbitTemplate.convertAndSend(BOOKING_EXCHANGE, NOTIFICATION_ROUTING_KEY, notificationEvent);
+		kafkaTemplate.send(BOOKING_TOPIC, notificationEvent);
 
 		// Evict cache
 		evictUserTicketsCache(userId);
@@ -137,8 +137,7 @@ public class TicketService {
 		Boolean released = inventoryServiceClient.releaseSeats(
 				ticket.getTrainId(),
 				ticket.getDepartureDate(),
-				ticket.getNumberOfSeats()
-		);
+				ticket.getNumberOfSeats());
 
 		if (!released) {
 			throw new RuntimeException("Failed to release seats");
@@ -163,4 +162,3 @@ public class TicketService {
 		redisTemplate.delete(USER_TICKETS_CACHE_PREFIX + userId);
 	}
 }
-

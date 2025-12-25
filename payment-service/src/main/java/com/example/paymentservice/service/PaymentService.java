@@ -1,19 +1,20 @@
 package com.example.paymentservice.service;
 
-import com.example.paymentservice.dto.PaymentResponse;
-import com.example.paymentservice.dto.ProcessPaymentRequest;
-import com.example.paymentservice.entity.Payment;
-import com.example.paymentservice.repository.PaymentRepository;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.paymentservice.dto.PaymentResponse;
+import com.example.paymentservice.dto.ProcessPaymentRequest;
+import com.example.paymentservice.entity.Payment;
+import com.example.paymentservice.repository.PaymentRepository;
 
 @Service
 @Transactional
@@ -23,10 +24,9 @@ public class PaymentService {
 	private PaymentRepository paymentRepository;
 
 	@Autowired
-	private RabbitTemplate rabbitTemplate;
+	private KafkaTemplate<String, Object> kafkaTemplate;
 
-	private static final String PAYMENT_EXCHANGE = "payment.exchange";
-	private static final String NOTIFICATION_ROUTING_KEY = "notification.payment";
+	private static final String PAYMENT_TOPIC = "payment-events";
 
 	public PaymentResponse processPayment(Long userId, ProcessPaymentRequest request) {
 		// Check if payment already exists for this ticket
@@ -44,7 +44,7 @@ public class PaymentService {
 
 		// Simulate payment processing
 		boolean paymentSuccess = processPaymentWithGateway(request);
-		
+
 		if (paymentSuccess) {
 			payment.setStatus(Payment.PaymentStatus.COMPLETED);
 		} else {
@@ -60,7 +60,7 @@ public class PaymentService {
 		notificationEvent.put("userId", userId);
 		notificationEvent.put("amount", request.getAmount());
 		notificationEvent.put("status", payment.getStatus().toString());
-		rabbitTemplate.convertAndSend(PAYMENT_EXCHANGE, NOTIFICATION_ROUTING_KEY, notificationEvent);
+		kafkaTemplate.send(PAYMENT_TOPIC, notificationEvent);
 
 		return new PaymentResponse(payment);
 	}
@@ -101,4 +101,3 @@ public class PaymentService {
 		return true; // Simulate success
 	}
 }
-

@@ -27,11 +27,11 @@ spring:
     type: redis
     redis:
       time-to-live: 600000
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: admin
-    password: admin
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 server:
   port: 8083

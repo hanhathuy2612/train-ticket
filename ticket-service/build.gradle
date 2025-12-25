@@ -4,7 +4,7 @@ plugins {
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
-group = 'com.example'
+group = 'com.train.ticket'
 version = '0.0.1-SNAPSHOT'
 description = 'Ticket Service'
 
@@ -34,8 +34,8 @@ dependencies {
 	// PostgreSQL
 	runtimeOnly 'org.postgresql:postgresql'
 
-	// RabbitMQ
-	implementation 'org.springframework.boot:spring-boot-starter-amqp'
+	// Kafka
+	implementation 'org.springframework.kafka:spring-kafka'
 
 	// Feign Client for service communication
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
