@@ -2,19 +2,38 @@ package com.example.ticketservice.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.example.ticketservice.entity.Ticket;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TicketResponse {
+	
 	private Long id;
 	private Long userId;
 	private Long trainId;
 	private String departureDate;
 	private Integer numberOfSeats;
 	private BigDecimal totalPrice;
-	private Ticket.TicketStatus status;
+	private String status;
+	private String statusDescription;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
+	
+	// Additional info
+	private TrainInfo trainInfo;
+	private PaymentInfo paymentInfo;
+	private List<String> seatNumbers;
 
 	public TicketResponse(Ticket ticket) {
 		this.id = ticket.getId();
@@ -23,81 +42,51 @@ public class TicketResponse {
 		this.departureDate = ticket.getDepartureDate();
 		this.numberOfSeats = ticket.getNumberOfSeats();
 		this.totalPrice = ticket.getTotalPrice();
-		this.status = ticket.getStatus();
+		this.status = ticket.getStatus().name();
+		this.statusDescription = getStatusDescription(ticket.getStatus());
 		this.createdAt = ticket.getCreatedAt();
 		this.updatedAt = ticket.getUpdatedAt();
 	}
-
-	// Getters and Setters
-	public Long getId() {
-		return id;
+	
+	public static TicketResponse from(Ticket ticket) {
+		return new TicketResponse(ticket);
 	}
-
-	public void setId(Long id) {
-		this.id = id;
+	
+	public static TicketResponse withTrainInfo(Ticket ticket, TrainInfo trainInfo) {
+		TicketResponse response = new TicketResponse(ticket);
+		response.setTrainInfo(trainInfo);
+		return response;
 	}
-
-	public Long getUserId() {
-		return userId;
+	
+	private String getStatusDescription(Ticket.TicketStatus status) {
+		return switch (status) {
+			case PENDING -> "Waiting for payment";
+			case CONFIRMED -> "Payment confirmed, ticket is valid";
+			case CANCELLED -> "Ticket has been cancelled";
+			case COMPLETED -> "Trip completed";
+		};
 	}
-
-	public void setUserId(Long userId) {
-		this.userId = userId;
+	
+	@Data
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	public static class TrainInfo {
+		private String trainNumber;
+		private String origin;
+		private String destination;
+		private LocalDateTime departureTime;
+		private LocalDateTime arrivalTime;
 	}
-
-	public Long getTrainId() {
-		return trainId;
-	}
-
-	public void setTrainId(Long trainId) {
-		this.trainId = trainId;
-	}
-
-	public String getDepartureDate() {
-		return departureDate;
-	}
-
-	public void setDepartureDate(String departureDate) {
-		this.departureDate = departureDate;
-	}
-
-	public Integer getNumberOfSeats() {
-		return numberOfSeats;
-	}
-
-	public void setNumberOfSeats(Integer numberOfSeats) {
-		this.numberOfSeats = numberOfSeats;
-	}
-
-	public BigDecimal getTotalPrice() {
-		return totalPrice;
-	}
-
-	public void setTotalPrice(BigDecimal totalPrice) {
-		this.totalPrice = totalPrice;
-	}
-
-	public Ticket.TicketStatus getStatus() {
-		return status;
-	}
-
-	public void setStatus(Ticket.TicketStatus status) {
-		this.status = status;
-	}
-
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
-
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
-
-	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
-	}
-
-	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
+	
+	@Data
+	@Builder
+	@NoArgsConstructor
+	@AllArgsConstructor
+	public static class PaymentInfo {
+		private Long paymentId;
+		private String paymentStatus;
+		private BigDecimal amount;
+		private LocalDateTime paidAt;
 	}
 }

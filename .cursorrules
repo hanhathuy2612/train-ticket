@@ -1,0 +1,324 @@
+# Cursor Rules for Java Spring Boot Microservices Project
+
+## Project Context
+This is a Train Ticket Booking System built with microservices architecture using:
+- Java 17
+- Spring Boot 3.5.0
+- Spring Cloud 2025.0.1
+- PostgreSQL, Redis, RabbitMQ
+- Gradle as build tool
+
+## Code Style & Conventions
+
+### Java Code Style
+- Use 4 spaces for indentation (tabs converted to spaces)
+- Maximum line length: 120 characters
+- Use camelCase for variables and methods
+- Use PascalCase for class names
+- Use UPPER_SNAKE_CASE for constants
+- Always use braces for if/for/while statements
+- Place opening brace on same line
+
+### Package Structure
+Follow standard Spring Boot package structure:
+```
+com.example.{servicename}/
+├── config/          # Configuration classes
+├── controller/      # REST controllers
+├── service/         # Business logic
+├── repository/      # Data access layer
+├── entity/          # JPA entities
+├── dto/             # Data Transfer Objects
+├── exception/       # Custom exceptions
+├── client/          # Feign clients
+├── event/           # Event publishers/listeners
+├── scheduler/       # Scheduled tasks
+└── util/            # Utility classes
+```
+
+### Naming Conventions
+- Controllers: `{Name}Controller.java`
+- Services: `{Name}Service.java`
+- Repositories: `{Name}Repository.java`
+- Entities: Singular noun (e.g., `User.java`, `Ticket.java`)
+- DTOs: `{Name}Request.java`, `{Name}Response.java`
+- Exceptions: `{Name}Exception.java`
+- Config classes: `{Name}Config.java`
+- Feign clients: `{Name}ServiceClient.java`
+
+## Coding Patterns
+
+### Entity Pattern
+```java
+@Entity
+@Table(name = "table_name", indexes = {
+    @Index(name = "idx_column", columnList = "column")
+})
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class EntityName {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Version
+    private Long version;  // Optimistic locking
+    
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+    
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+}
+```
+
+### Controller Pattern
+```java
+@RestController
+@RequestMapping("/resource")
+@RequiredArgsConstructor
+public class ResourceController {
+    private static final Logger logger = LoggerFactory.getLogger(ResourceController.class);
+    
+    private final ResourceService resourceService;
+    
+    @PostMapping
+    public ResponseEntity<ApiResponse<ResourceResponse>> create(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody CreateRequest request) {
+        ResourceResponse response = resourceService.create(userId, request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.created(response));
+    }
+}
+```
+
+### Service Pattern
+```java
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class ResourceService {
+    private static final Logger logger = LoggerFactory.getLogger(ResourceService.class);
+    
+    private final ResourceRepository repository;
+    
+    @Transactional
+    @CacheEvict(value = "resources", allEntries = true)
+    public ResourceResponse create(Long userId, CreateRequest request) {
+        // Business logic
+    }
+    
+    @Cacheable(value = "resources", key = "#id")
+    public ResourceResponse getById(Long id) {
+        return repository.findById(id)
+                .map(ResourceResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException(id));
+    }
+}
+```
+
+### DTO Pattern
+```java
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ResourceResponse {
+    private Long id;
+    private String name;
+    private LocalDateTime createdAt;
+    
+    public static ResourceResponse from(Resource entity) {
+        return ResourceResponse.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .createdAt(entity.getCreatedAt())
+                .build();
+    }
+}
+```
+
+### Exception Handling Pattern
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND.value()));
+    }
+}
+```
+
+### Feign Client Pattern
+```java
+@FeignClient(name = "service-name", fallback = ServiceClientFallback.class)
+public interface ServiceClient {
+    
+    @GetMapping("/resource/{id}")
+    ResourceResponse getById(@PathVariable("id") Long id);
+    
+    @PostMapping("/resource")
+    ResourceResponse create(@RequestBody CreateRequest request);
+}
+```
+
+## Best Practices
+
+### Dependency Injection
+- Always use constructor injection via `@RequiredArgsConstructor`
+- Avoid `@Autowired` on fields
+- Use `final` for injected dependencies
+
+### Validation
+- Use Jakarta Validation annotations (`@NotNull`, `@NotBlank`, `@Size`, etc.)
+- Use `@Valid` in controller parameters
+- Create custom validators for complex validation
+
+### Logging
+- Use SLF4J with `LoggerFactory.getLogger(ClassName.class)`
+- Log at appropriate levels: ERROR, WARN, INFO, DEBUG
+- Include relevant context in log messages
+- Never log sensitive data (passwords, tokens)
+
+### Error Handling
+- Create specific exception classes for different error types
+- Use `@RestControllerAdvice` for global exception handling
+- Return consistent error response format
+
+### Caching
+- Use `@Cacheable`, `@CacheEvict`, `@CachePut` annotations
+- Define cache names as constants
+- Set appropriate TTL for caches
+
+### Transaction Management
+- Use `@Transactional(readOnly = true)` at class level for read operations
+- Use `@Transactional` at method level for write operations
+- Use appropriate isolation levels for critical operations
+
+### API Response
+- Always wrap responses in `ApiResponse<T>`
+- Include timestamp, status code, and message
+- Use appropriate HTTP status codes
+
+## Annotations Reference
+
+### Spring Boot
+- `@SpringBootApplication`
+- `@RestController`, `@Controller`
+- `@Service`, `@Repository`, `@Component`
+- `@Configuration`, `@Bean`
+
+### Spring Web
+- `@RequestMapping`, `@GetMapping`, `@PostMapping`, `@PutMapping`, `@DeleteMapping`
+- `@PathVariable`, `@RequestParam`, `@RequestBody`, `@RequestHeader`
+- `@Valid`, `@Validated`
+
+### Spring Data JPA
+- `@Entity`, `@Table`, `@Column`
+- `@Id`, `@GeneratedValue`
+- `@OneToMany`, `@ManyToOne`, `@ManyToMany`
+- `@Query`, `@Modifying`
+- `@Lock`, `@Version`
+
+### Lombok
+- `@Data`, `@Getter`, `@Setter`
+- `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor`
+- `@RequiredArgsConstructor`
+- `@Slf4j` (alternative to manual logger)
+
+### Spring Cloud
+- `@EnableDiscoveryClient`
+- `@FeignClient`
+- `@EnableFeignClients`
+
+### Caching
+- `@EnableCaching`
+- `@Cacheable`, `@CacheEvict`, `@CachePut`
+
+### Validation
+- `@NotNull`, `@NotBlank`, `@NotEmpty`
+- `@Size`, `@Min`, `@Max`
+- `@Email`, `@Pattern`
+- `@Positive`, `@PositiveOrZero`
+
+## File Templates
+
+When asked to create new files, follow these templates:
+
+### New Entity
+Include: @Entity, @Table with indexes, @Data, @Builder, @Version, timestamps with @PrePersist/@PreUpdate
+
+### New Controller
+Include: @RestController, @RequestMapping, @RequiredArgsConstructor, Logger, service injection
+
+### New Service
+Include: @Service, @RequiredArgsConstructor, @Transactional(readOnly = true), Logger, repository injection
+
+### New DTO
+Include: @Data, @Builder, @NoArgsConstructor, @AllArgsConstructor, @JsonInclude, static from() method
+
+### New Exception
+Include: extends RuntimeException, constructor with message, constructor with id parameter
+
+### New Feign Client
+Include: @FeignClient with name and fallback, method mappings
+
+## Testing Conventions
+- Use JUnit 5 (`@Test`, `@BeforeEach`, `@AfterEach`)
+- Use Mockito for mocking (`@Mock`, `@InjectMocks`, `@MockBean`)
+- Use `@SpringBootTest` for integration tests
+- Use `@WebMvcTest` for controller tests
+- Use `@DataJpaTest` for repository tests
+- Follow Given-When-Then pattern
+- Test class naming: `{ClassName}Test.java`
+
+## Database Conventions
+- Table names: lowercase with underscores (snake_case)
+- Column names: lowercase with underscores
+- Index names: `idx_{table}_{column}`
+- Foreign key names: `fk_{table}_{referenced_table}`
+- Always include `created_at` and `updated_at` timestamps
+- Use `@Version` for optimistic locking
+
+## API Conventions
+- Use RESTful naming: `/resources`, `/resources/{id}`
+- Use plural nouns for collection endpoints
+- Use HTTP methods appropriately: GET, POST, PUT, DELETE
+- Return 201 for created, 200 for success, 204 for no content
+- Include pagination for list endpoints
+- Use query parameters for filtering
+
+## Security Notes
+- Never hardcode secrets (use environment variables)
+- Validate all user inputs
+- Use parameterized queries (JPA handles this)
+- Implement rate limiting
+- Use HTTPS in production
+- JWT tokens should have appropriate expiration
+
+## Performance Notes
+- Use pagination for large datasets
+- Implement caching strategically
+- Use connection pooling (HikariCP)
+- Batch database operations when possible
+- Use async processing for heavy tasks
+- Index frequently queried columns
+

@@ -1,6 +1,8 @@
 spring:
   application:
     name: ticket-service
+    
+  # Database Configuration
   datasource:
     url: jdbc:postgresql://localhost:5432/trainticket
     username: postgres
@@ -10,6 +12,11 @@ spring:
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      pool-name: TicketServiceHikariPool
+      
+  # JPA Configuration
   jpa:
     hibernate:
       ddl-auto: update
@@ -18,48 +25,152 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        
+  # Redis Configuration
   data:
     redis:
       host: localhost
       port: 6379
       timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 4
+          
+  # Cache Configuration
   cache:
     type: redis
     redis:
       time-to-live: 600000
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      cache-null-values: false
+      
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: admin
+    virtual-host: /
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          max-interval: 10000
+          multiplier: 2
+        acknowledge-mode: auto
 
+# Server Configuration
 server:
   port: 8083
+  shutdown: graceful
 
+# Eureka Configuration
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
     fetch-registry: true
     register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
 
-inventory:
-  service:
-    url: http://inventory-service
+# Feign Configuration
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 10000
+        logger-level: basic
+  circuitbreaker:
+    enabled: true
 
-payment:
-  service:
-    url: http://payment-service
+# RabbitMQ Custom Properties
+rabbitmq:
+  exchange:
+    booking: booking-exchange
+  queue:
+    booking-created: booking-created-queue
+    booking-confirmed: booking-confirmed-queue
+    booking-cancelled: booking-cancelled-queue
+  routing-key:
+    booking-created: booking.created
+    booking-confirmed: booking.confirmed
+    booking-cancelled: booking.cancelled
 
-notification:
-  service:
-    url: http://notification-service
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      inventory-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+      payment-service:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+  retry:
+    instances:
+      inventory-service:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
 
+# Actuator Configuration
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus,circuitbreakers
   endpoint:
     health:
       show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.example.ticketservice: DEBUG
+    org.springframework.web: INFO
+    org.springframework.data: INFO
+    org.hibernate.SQL: DEBUG
+    feign: DEBUG
+
+---
+# Docker Profile
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/trainticket
+  data:
+    redis:
+      host: redis
+  rabbitmq:
+    host: rabbitmq
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
