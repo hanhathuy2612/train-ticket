@@ -1,43 +1,47 @@
 package com.example.paymentservice.dto;
 
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
+import com.example.paymentservice.entity.Payment.PaymentMethod;
+
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ProcessPaymentRequest {
-	
-	@NotNull(message = "Ticket ID is required")
-	private Long ticketId;
-	
-	@NotNull(message = "Amount is required")
-	@Positive(message = "Amount must be positive")
-	private BigDecimal amount;
-	
-	@NotNull(message = "Payment method is required")
-	private String paymentMethod;
 
-	public Long getTicketId() {
-		return ticketId;
-	}
+    @NotNull(message = "Ticket ID is required")
+    private Long ticketId;
 
-	public void setTicketId(Long ticketId) {
-		this.ticketId = ticketId;
-	}
+    @NotNull(message = "Amount is required")
+    @Positive(message = "Amount must be positive")
+    private BigDecimal amount;
 
-	public BigDecimal getAmount() {
-		return amount;
-	}
+    @NotNull(message = "Payment method is required")
+    private PaymentMethod paymentMethod;
 
-	public void setAmount(BigDecimal amount) {
-		this.amount = amount;
-	}
+    // Card payment details (optional)
+    private String cardNumber;
+    private String cardHolderName;
+    private String expiryDate;
+    private String cvv;
 
-	public String getPaymentMethod() {
-		return paymentMethod;
-	}
+    // E-wallet details (optional)
+    private String walletType;
+    private String walletAccountId;
 
-	public void setPaymentMethod(String paymentMethod) {
-		this.paymentMethod = paymentMethod;
-	}
+    // Bank transfer details (optional)
+    private String bankCode;
+    private String accountNumber;
+
+    // Callback URL for async payment processing
+    private String callbackUrl;
+    private String returnUrl;
 }
-

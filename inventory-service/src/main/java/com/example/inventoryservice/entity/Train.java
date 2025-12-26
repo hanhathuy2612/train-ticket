@@ -1,112 +1,157 @@
 package com.example.inventoryservice.entity;
 
-import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 @Entity
-@Table(name = "trains")
+@Table(name = "trains", indexes = {
+    @Index(name = "idx_train_number", columnList = "trainNumber"),
+    @Index(name = "idx_train_route", columnList = "route_id"),
+    @Index(name = "idx_train_active", columnList = "active"),
+    @Index(name = "idx_train_type", columnList = "trainType")
+})
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Train {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@Column(nullable = false)
-	private String trainNumber;
+    @Column(nullable = false, unique = true, length = 20)
+    private String trainNumber;
 
-	@Column(nullable = false)
-	private String origin;
+    @Column(nullable = false, length = 100)
+    private String trainName;
 
-	@Column(nullable = false)
-	private String destination;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "route_id", nullable = false)
+    private Route route;
 
-	@Column(nullable = false)
-	private LocalDateTime departureTime;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private TrainType trainType = TrainType.EXPRESS;
 
-	@Column(nullable = false)
-	private LocalDateTime arrivalTime;
+    @Column(nullable = false)
+    private LocalTime departureTime;
 
-	@Column(nullable = false)
-	private Integer totalSeats;
+    @Column(nullable = false)
+    private LocalTime arrivalTime;
 
-	@OneToMany(mappedBy = "train", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	private List<Seat> seats;
+    @Column(nullable = false)
+    private Integer totalSeats;
 
-	@Version
-	private Long version;
+    @Column(nullable = false)
+    private Integer economySeats;
 
-	// Getters and Setters
-	public Long getId() {
-		return id;
-	}
+    @Column(nullable = false)
+    private Integer businessSeats;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer firstClassSeats = 0;
 
-	public String getTrainNumber() {
-		return trainNumber;
-	}
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal economyPrice;
 
-	public void setTrainNumber(String trainNumber) {
-		this.trainNumber = trainNumber;
-	}
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal businessPrice;
 
-	public String getOrigin() {
-		return origin;
-	}
+    @Column(nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal firstClassPrice = BigDecimal.ZERO;
 
-	public void setOrigin(String origin) {
-		this.origin = origin;
-	}
+    @OneToMany(mappedBy = "train", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Seat> seats = new ArrayList<>();
 
-	public String getDestination() {
-		return destination;
-	}
+    @OneToMany(mappedBy = "train", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Schedule> schedules = new ArrayList<>();
 
-	public void setDestination(String destination) {
-		this.destination = destination;
-	}
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean active = true;
 
-	public LocalDateTime getDepartureTime() {
-		return departureTime;
-	}
+    @Column(length = 500)
+    private String amenities; // JSON string of amenities
 
-	public void setDepartureTime(LocalDateTime departureTime) {
-		this.departureTime = departureTime;
-	}
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	public LocalDateTime getArrivalTime() {
-		return arrivalTime;
-	}
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 
-	public void setArrivalTime(LocalDateTime arrivalTime) {
-		this.arrivalTime = arrivalTime;
-	}
+    @Version
+    private Long version;
 
-	public Integer getTotalSeats() {
-		return totalSeats;
-	}
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+        if (totalSeats == null) {
+            totalSeats = economySeats + businessSeats + (firstClassSeats != null ? firstClassSeats : 0);
+        }
+    }
 
-	public void setTotalSeats(Integer totalSeats) {
-		this.totalSeats = totalSeats;
-	}
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+        totalSeats = economySeats + businessSeats + (firstClassSeats != null ? firstClassSeats : 0);
+    }
 
-	public List<Seat> getSeats() {
-		return seats;
-	}
+    public enum TrainType {
+        LOCAL("Local Train"),
+        EXPRESS("Express Train"),
+        BULLET("Bullet Train");
 
-	public void setSeats(List<Seat> seats) {
-		this.seats = seats;
-	}
+        private final String description;
 
-	public Long getVersion() {
-		return version;
-	}
+        TrainType(String description) {
+            this.description = description;
+        }
 
-	public void setVersion(Long version) {
-		this.version = version;
-	}
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    // Helper method
+    public BigDecimal getPriceForClass(String seatClass) {
+        return switch (seatClass.toUpperCase()) {
+            case "ECONOMY" -> economyPrice;
+            case "BUSINESS" -> businessPrice;
+            case "FIRST" -> firstClassPrice;
+            default -> economyPrice;
+        };
+    }
 }
-

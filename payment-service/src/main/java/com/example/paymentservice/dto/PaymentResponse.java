@@ -1,93 +1,70 @@
 package com.example.paymentservice.dto;
 
-import com.example.paymentservice.entity.Payment;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.example.paymentservice.entity.Payment;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PaymentResponse {
-	private Long id;
-	private Long ticketId;
-	private Long userId;
-	private BigDecimal amount;
-	private Payment.PaymentStatus status;
-	private String paymentMethod;
-	private LocalDateTime createdAt;
-	private LocalDateTime updatedAt;
+    
+    private Long id;
+    private Long ticketId;
+    private Long userId;
+    private BigDecimal amount;
+    private BigDecimal refundAmount;
+    private String status;
+    private String statusDescription;
+    private String paymentMethod;
+    private String transactionId;
+    private String gatewayTransactionId;
+    private String gatewayProvider;
+    private String failureReason;
+    private String refundReason;
+    private LocalDateTime paidAt;
+    private LocalDateTime refundedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-	public PaymentResponse(Payment payment) {
-		this.id = payment.getId();
-		this.ticketId = payment.getTicketId();
-		this.userId = payment.getUserId();
-		this.amount = payment.getAmount();
-		this.status = payment.getStatus();
-		this.paymentMethod = payment.getPaymentMethod();
-		this.createdAt = payment.getCreatedAt();
-		this.updatedAt = payment.getUpdatedAt();
-	}
+    public PaymentResponse(Payment payment) {
+        this.id = payment.getId();
+        this.ticketId = payment.getTicketId();
+        this.userId = payment.getUserId();
+        this.amount = payment.getAmount();
+        this.refundAmount = payment.getRefundAmount();
+        this.status = payment.getStatus().name();
+        this.statusDescription = payment.getStatus().getDescription();
+        this.paymentMethod = payment.getPaymentMethod().name();
+        this.transactionId = payment.getTransactionId();
+        this.gatewayTransactionId = payment.getGatewayTransactionId();
+        this.gatewayProvider = payment.getGatewayProvider();
+        this.failureReason = payment.getFailureReason();
+        this.refundReason = payment.getRefundReason();
+        this.paidAt = payment.getPaidAt();
+        this.refundedAt = payment.getRefundedAt();
+        this.createdAt = payment.getCreatedAt();
+        this.updatedAt = payment.getUpdatedAt();
+    }
 
-	// Getters and Setters
-	public Long getId() {
-		return id;
-	}
+    public static PaymentResponse from(Payment payment) {
+        return new PaymentResponse(payment);
+    }
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    public boolean isCompleted() {
+        return "COMPLETED".equals(status);
+    }
 
-	public Long getTicketId() {
-		return ticketId;
-	}
-
-	public void setTicketId(Long ticketId) {
-		this.ticketId = ticketId;
-	}
-
-	public Long getUserId() {
-		return userId;
-	}
-
-	public void setUserId(Long userId) {
-		this.userId = userId;
-	}
-
-	public BigDecimal getAmount() {
-		return amount;
-	}
-
-	public void setAmount(BigDecimal amount) {
-		this.amount = amount;
-	}
-
-	public Payment.PaymentStatus getStatus() {
-		return status;
-	}
-
-	public void setStatus(Payment.PaymentStatus status) {
-		this.status = status;
-	}
-
-	public String getPaymentMethod() {
-		return paymentMethod;
-	}
-
-	public void setPaymentMethod(String paymentMethod) {
-		this.paymentMethod = paymentMethod;
-	}
-
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
-
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
-
-	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
-	}
-
-	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
-	}
+    public boolean isRefunded() {
+        return "REFUNDED".equals(status) || "PARTIALLY_REFUNDED".equals(status);
+    }
 }
-

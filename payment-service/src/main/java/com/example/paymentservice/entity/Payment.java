@@ -1,128 +1,164 @@
 package com.example.paymentservice.entity;
 
-import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 @Entity
-@Table(name = "payments")
+@Table(name = "payments", indexes = {
+    @Index(name = "idx_payment_ticket", columnList = "ticketId"),
+    @Index(name = "idx_payment_user", columnList = "userId"),
+    @Index(name = "idx_payment_status", columnList = "status"),
+    @Index(name = "idx_payment_transaction", columnList = "transactionId"),
+    @Index(name = "idx_payment_created", columnList = "createdAt")
+})
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Payment {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@Column(nullable = false)
-	private Long ticketId;
+    @Column(nullable = false)
+    private Long ticketId;
 
-	@Column(nullable = false)
-	private Long userId;
+    @Column(nullable = false)
+    private Long userId;
 
-	@Column(nullable = false)
-	private BigDecimal amount;
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal amount;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
-	private PaymentStatus status = PaymentStatus.PENDING;
+    @Column(precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal refundAmount = BigDecimal.ZERO;
 
-	@Column(nullable = false)
-	private String paymentMethod;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private PaymentStatus status = PaymentStatus.PENDING;
 
-	@Column(nullable = false)
-	private LocalDateTime createdAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private PaymentMethod paymentMethod;
 
-	@Column(nullable = false)
-	private LocalDateTime updatedAt;
+    @Column(unique = true, length = 100)
+    private String transactionId;
 
-	@Version
-	private Long version;
+    @Column(length = 100)
+    private String gatewayTransactionId;
 
-	@PrePersist
-	protected void onCreate() {
-		createdAt = LocalDateTime.now();
-		updatedAt = LocalDateTime.now();
-	}
+    @Column(length = 50)
+    private String gatewayProvider; // VNPAY, MOMO, ZALOPAY, etc.
 
-	@PreUpdate
-	protected void onUpdate() {
-		updatedAt = LocalDateTime.now();
-	}
+    @Column(length = 500)
+    private String failureReason;
 
-	public enum PaymentStatus {
-		PENDING, COMPLETED, FAILED, REFUNDED
-	}
+    @Column(length = 500)
+    private String refundReason;
 
-	// Getters and Setters
-	public Long getId() {
-		return id;
-	}
+    private LocalDateTime paidAt;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    private LocalDateTime refundedAt;
 
-	public Long getTicketId() {
-		return ticketId;
-	}
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	public void setTicketId(Long ticketId) {
-		this.ticketId = ticketId;
-	}
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 
-	public Long getUserId() {
-		return userId;
-	}
+    @Version
+    private Long version;
 
-	public void setUserId(Long userId) {
-		this.userId = userId;
-	}
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+        if (transactionId == null) {
+            transactionId = generateTransactionId();
+        }
+    }
 
-	public BigDecimal getAmount() {
-		return amount;
-	}
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
-	public void setAmount(BigDecimal amount) {
-		this.amount = amount;
-	}
+    public enum PaymentStatus {
+        PENDING("Pending Payment"),
+        PROCESSING("Processing"),
+        COMPLETED("Payment Completed"),
+        FAILED("Payment Failed"),
+        REFUND_PENDING("Refund Pending"),
+        REFUNDED("Refunded"),
+        PARTIALLY_REFUNDED("Partially Refunded"),
+        CANCELLED("Cancelled");
 
-	public PaymentStatus getStatus() {
-		return status;
-	}
+        private final String description;
 
-	public void setStatus(PaymentStatus status) {
-		this.status = status;
-	}
+        PaymentStatus(String description) {
+            this.description = description;
+        }
 
-	public String getPaymentMethod() {
-		return paymentMethod;
-	}
+        public String getDescription() {
+            return description;
+        }
+    }
 
-	public void setPaymentMethod(String paymentMethod) {
-		this.paymentMethod = paymentMethod;
-	}
+    public enum PaymentMethod {
+        CREDIT_CARD("Credit Card"),
+        DEBIT_CARD("Debit Card"),
+        BANK_TRANSFER("Bank Transfer"),
+        E_WALLET("E-Wallet"),
+        VNPAY("VNPay"),
+        MOMO("MoMo"),
+        ZALOPAY("ZaloPay"),
+        CASH("Cash");
 
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
+        private final String description;
 
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
+        PaymentMethod(String description) {
+            this.description = description;
+        }
 
-	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
-	}
+        public String getDescription() {
+            return description;
+        }
+    }
 
-	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
-	}
+    private String generateTransactionId() {
+        return "TXN" + System.currentTimeMillis() + (int) (Math.random() * 1000);
+    }
 
-	public Long getVersion() {
-		return version;
-	}
+    // Helper methods
+    public boolean isCompleted() {
+        return status == PaymentStatus.COMPLETED;
+    }
 
-	public void setVersion(Long version) {
-		this.version = version;
-	}
+    public boolean canBeRefunded() {
+        return status == PaymentStatus.COMPLETED;
+    }
+
+    public boolean isRefunded() {
+        return status == PaymentStatus.REFUNDED || status == PaymentStatus.PARTIALLY_REFUNDED;
+    }
 }
-

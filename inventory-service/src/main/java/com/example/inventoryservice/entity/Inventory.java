@@ -1,122 +1,106 @@
 package com.example.inventoryservice.entity;
 
-import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 @Entity
-@Table(name = "inventory", uniqueConstraints = @UniqueConstraint(columnNames = {"train_id", "departure_date"}))
+@Table(name = "inventory", 
+    uniqueConstraints = @UniqueConstraint(columnNames = {"trainId", "departureDate"}),
+    indexes = {
+        @Index(name = "idx_inventory_train", columnList = "trainId"),
+        @Index(name = "idx_inventory_date", columnList = "departureDate")
+    })
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Inventory {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@Column(name = "train_id", nullable = false)
-	private Long trainId;
+    @Column(nullable = false)
+    private Long trainId;
 
-	@Column(name = "departure_date", nullable = false)
-	private LocalDateTime departureDate;
+    @Column(nullable = false)
+    private LocalDate departureDate;
 
-	@Column(nullable = false)
-	private Integer totalSeats;
+    @Column(nullable = false)
+    private Integer totalSeats;
 
-	@Column(nullable = false)
-	private Integer availableSeats;
+    @Column(nullable = false)
+    private Integer availableSeats;
 
-	@Column(nullable = false)
-	private Integer reservedSeats = 0;
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer reservedSeats = 0;
 
-	@Column(nullable = false)
-	private LocalDateTime createdAt;
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer economyAvailable = 0;
 
-	@Column(nullable = false)
-	private LocalDateTime updatedAt;
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer businessAvailable = 0;
 
-	@Version
-	private Long version;
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer firstClassAvailable = 0;
 
-	@PrePersist
-	protected void onCreate() {
-		createdAt = LocalDateTime.now();
-		updatedAt = LocalDateTime.now();
-	}
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	@PreUpdate
-	protected void onUpdate() {
-		updatedAt = LocalDateTime.now();
-	}
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 
-	// Getters and Setters
-	public Long getId() {
-		return id;
-	}
+    @Version
+    private Long version;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+    }
 
-	public Long getTrainId() {
-		return trainId;
-	}
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
-	public void setTrainId(Long trainId) {
-		this.trainId = trainId;
-	}
+    // Helper methods
+    public boolean hasAvailableSeats(int count) {
+        return availableSeats >= count;
+    }
 
-	public LocalDateTime getDepartureDate() {
-		return departureDate;
-	}
+    public boolean reserveSeats(int count) {
+        if (availableSeats >= count) {
+            availableSeats -= count;
+            reservedSeats += count;
+            return true;
+        }
+        return false;
+    }
 
-	public void setDepartureDate(LocalDateTime departureDate) {
-		this.departureDate = departureDate;
-	}
-
-	public Integer getTotalSeats() {
-		return totalSeats;
-	}
-
-	public void setTotalSeats(Integer totalSeats) {
-		this.totalSeats = totalSeats;
-	}
-
-	public Integer getAvailableSeats() {
-		return availableSeats;
-	}
-
-	public void setAvailableSeats(Integer availableSeats) {
-		this.availableSeats = availableSeats;
-	}
-
-	public Integer getReservedSeats() {
-		return reservedSeats;
-	}
-
-	public void setReservedSeats(Integer reservedSeats) {
-		this.reservedSeats = reservedSeats;
-	}
-
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
-
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
-
-	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
-	}
-
-	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
-	}
-
-	public Long getVersion() {
-		return version;
-	}
-
-	public void setVersion(Long version) {
-		this.version = version;
-	}
+    public void releaseSeats(int count) {
+        availableSeats += count;
+        reservedSeats = Math.max(0, reservedSeats - count);
+    }
 }
-

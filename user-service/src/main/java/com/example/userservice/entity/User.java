@@ -1,127 +1,159 @@
 package com.example.userservice.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+    @Index(name = "idx_user_username", columnList = "username"),
+    @Index(name = "idx_user_email", columnList = "email"),
+    @Index(name = "idx_user_active", columnList = "active")
+})
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@NotBlank
-	@Column(unique = true, nullable = false)
-	private String username;
+    @Column(unique = true, nullable = false, length = 50)
+    private String username;
 
-	@NotBlank
-	@Email
-	@Column(unique = true, nullable = false)
-	private String email;
+    @Column(unique = true, nullable = false, length = 100)
+    private String email;
 
-	@NotBlank
-	@Column(nullable = false)
-	private String password;
+    @Column(nullable = false)
+    private String password;
 
-	@NotBlank
-	private String fullName;
+    @Column(nullable = false, length = 100)
+    private String fullName;
 
-	private String phoneNumber;
+    @Column(length = 20)
+    private String phoneNumber;
 
-	@Column(nullable = false)
-	private Boolean active = true;
+    @Column(length = 255)
+    private String address;
 
-	@Column(nullable = false, updatable = false)
-	private LocalDateTime createdAt;
+    @Column(length = 50)
+    private String city;
 
-	@Column(nullable = false)
-	private LocalDateTime updatedAt;
+    @Column(length = 20)
+    private String idNumber; // CCCD/CMND
 
-	@PrePersist
-	protected void onCreate() {
-		createdAt = LocalDateTime.now();
-		updatedAt = LocalDateTime.now();
-	}
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role")
+    @Builder.Default
+    private Set<Role> roles = new HashSet<>();
 
-	@PreUpdate
-	protected void onUpdate() {
-		updatedAt = LocalDateTime.now();
-	}
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean active = true;
 
-	// Getters and Setters
-	public Long getId() {
-		return id;
-	}
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean emailVerified = false;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean phoneVerified = false;
 
-	public String getUsername() {
-		return username;
-	}
+    private String passwordResetToken;
+    
+    private LocalDateTime passwordResetExpiry;
+    
+    private String emailVerificationToken;
+    
+    private LocalDateTime lastLoginAt;
+    
+    private String lastLoginIp;
 
-	public void setUsername(String username) {
-		this.username = username;
-	}
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	public String getEmail() {
-		return email;
-	}
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 
-	public void setEmail(String email) {
-		this.email = email;
-	}
+    @Version
+    private Long version;
 
-	public String getPassword() {
-		return password;
-	}
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+        if (roles == null || roles.isEmpty()) {
+            roles = new HashSet<>();
+            roles.add(Role.USER);
+        }
+    }
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
-	public String getFullName() {
-		return fullName;
-	}
+    public enum Role {
+        USER("Standard User"),
+        ADMIN("Administrator"),
+        OPERATOR("Train Operator");
 
-	public void setFullName(String fullName) {
-		this.fullName = fullName;
-	}
+        private final String description;
 
-	public String getPhoneNumber() {
-		return phoneNumber;
-	}
+        Role(String description) {
+            this.description = description;
+        }
 
-	public void setPhoneNumber(String phoneNumber) {
-		this.phoneNumber = phoneNumber;
-	}
+        public String getDescription() {
+            return description;
+        }
+    }
 
-	public Boolean getActive() {
-		return active;
-	}
+    // Helper methods
+    public boolean hasRole(Role role) {
+        return roles != null && roles.contains(role);
+    }
 
-	public void setActive(Boolean active) {
-		this.active = active;
-	}
+    public boolean isAdmin() {
+        return hasRole(Role.ADMIN);
+    }
 
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
+    public void addRole(Role role) {
+        if (roles == null) {
+            roles = new HashSet<>();
+        }
+        roles.add(role);
+    }
 
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
-
-	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
-	}
-
-	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
-	}
+    public void removeRole(Role role) {
+        if (roles != null) {
+            roles.remove(role);
+        }
+    }
 }
-

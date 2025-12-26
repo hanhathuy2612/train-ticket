@@ -1,112 +1,101 @@
 package com.example.inventoryservice.entity;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 @Entity
-@Table(name = "seats")
+@Table(name = "seats", 
+    uniqueConstraints = @UniqueConstraint(columnNames = {"train_id", "seatNumber"}),
+    indexes = {
+        @Index(name = "idx_seat_train", columnList = "train_id"),
+        @Index(name = "idx_seat_class", columnList = "seatClass"),
+        @Index(name = "idx_seat_available", columnList = "available")
+    })
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Seat {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "train_id", nullable = false)
-	private Train train;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "train_id", nullable = false)
+    private Train train;
 
-	@Column(nullable = false)
-	private String seatNumber;
+    @Column(nullable = false, length = 10)
+    private String seatNumber; // e.g., "1A", "2B"
 
-	@Column(nullable = false)
-	private String seatClass;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private SeatClass seatClass;
 
-	@Column(nullable = false)
-	private Boolean available = true;
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean available = true;
 
-	@Column(nullable = false)
-	private LocalDateTime createdAt;
+    @Column(length = 50)
+    private String position; // WINDOW, AISLE, MIDDLE
 
-	@Column(nullable = false)
-	private LocalDateTime updatedAt;
+    @Column(nullable = false)
+    private Integer carNumber;
 
-	@Version
-	private Long version;
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	@PrePersist
-	protected void onCreate() {
-		createdAt = LocalDateTime.now();
-		updatedAt = LocalDateTime.now();
-	}
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 
-	@PreUpdate
-	protected void onUpdate() {
-		updatedAt = LocalDateTime.now();
-	}
+    @Version
+    private Long version;
 
-	// Getters and Setters
-	public Long getId() {
-		return id;
-	}
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+    }
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
-	public Train getTrain() {
-		return train;
-	}
+    public enum SeatClass {
+        ECONOMY("Economy Class"),
+        BUSINESS("Business Class"),
+        FIRST("First Class");
 
-	public void setTrain(Train train) {
-		this.train = train;
-	}
+        private final String description;
 
-	public String getSeatNumber() {
-		return seatNumber;
-	}
+        SeatClass(String description) {
+            this.description = description;
+        }
 
-	public void setSeatNumber(String seatNumber) {
-		this.seatNumber = seatNumber;
-	}
-
-	public String getSeatClass() {
-		return seatClass;
-	}
-
-	public void setSeatClass(String seatClass) {
-		this.seatClass = seatClass;
-	}
-
-	public Boolean getAvailable() {
-		return available;
-	}
-
-	public void setAvailable(Boolean available) {
-		this.available = available;
-	}
-
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
-
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
-
-	public LocalDateTime getUpdatedAt() {
-		return updatedAt;
-	}
-
-	public void setUpdatedAt(LocalDateTime updatedAt) {
-		this.updatedAt = updatedAt;
-	}
-
-	public Long getVersion() {
-		return version;
-	}
-
-	public void setVersion(Long version) {
-		this.version = version;
-	}
+        public String getDescription() {
+            return description;
+        }
+    }
 }
-

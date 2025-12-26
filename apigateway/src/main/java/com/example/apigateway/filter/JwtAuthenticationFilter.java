@@ -1,8 +1,10 @@
 package com.example.apigateway.filter;
 
 import java.util.List;
+import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -14,102 +16,131 @@ import org.springframework.web.server.ServerWebExchange;
 
 import com.example.apigateway.util.JwtUtil;
 
+import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
+
 /**
- /**
-  * JwtAuthenticationFilter is a custom filter for the Spring Cloud Gateway
-  * that performs JWT (JSON Web Token) authentication on incoming HTTP requests.
-  * 
-  * This filter is annotated with @Component, making it a Spring-managed bean
-  * and enabling it to be automatically picked up and applied to gateway requests.
-  * 
-  * Main responsibilities and internal workflow:
-  * 
-  * 1. **Dependency Injection:**
-  *    - Uses Spring's @Autowired to inject a JwtUtil instance, which is
-  *      responsible for actual JWT token operations (parsing, validating, extracting info).
-  * 
-  * 2. **Exclusion Paths:**
-  *    - Defines a static list (EXCLUDED_PATHS) of endpoint paths (such as user registration,
-  *      login, and actuator endpoints) which do not require authentication. Any request to
-  *      a matching path is allowed through without JWT validation.
-  * 
-  * 3. **JWT Validation:**
-  *    - On each request, checks the URL path.
-  *    - If the path is not excluded, it attempts to extract the Authorization header.
-  *    - The filter expects an "Authorization" header of the form "Bearer <token>".
-  *    - If the header is missing or malformed, the filter responds immediately with
-  *      HTTP 401 Unauthorized.
-  *    - Extracts the JWT token substring and validates it using JwtUtil.
-  *    - If the token is invalid (expired, malformed, incorrect signature, etc.), the filter
-  *      returns HTTP 401 Unauthorized.
-  * 
-  * 4. **Propagating Authentication Context:**
-  *    - If the JWT is valid, extracts the username and userId from the JWT using JwtUtil.
-  *    - Augments the request headers with "X-User-Name" and "X-User-Id" headers
-  *      so that downstream microservices can know the authenticated user's identity
-  *      without re-parsing the JWT.
-  *    - Passes the mutated request further down the gateway filter chain.
-  * 
-  * 5. **Order:**
-  *    - Implements the Ordered interface, which allows control over the filter’s execution
-  *      order relative to other gateway filters.
-  * 
-  * This class provides a crucial security entry point in the cloud-native, microservices
-  * architecture: it ensures only authenticated requests reach the protected routes, while
-  * unprotected/excluded routes are still accessible for user registration, login, or
-  * readiness checks.
-  */
+ * JWT Authentication Filter for Spring Cloud Gateway
+ * 
+ * This filter validates JWT tokens for protected routes and adds user context
+ * to request headers for downstream services.
+ */
 @Component
+@RequiredArgsConstructor
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
-	@Autowired
-	private JwtUtil jwtUtil;
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-	private static final List<String> EXCLUDED_PATHS = List.of(
-			"/api/users/register",
-			"/api/users/login",
-			"/actuator");
+    private final JwtUtil jwtUtil;
 
-	@Override
-	public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-		ServerHttpRequest request = exchange.getRequest();
-		String path = request.getURI().getPath();
+    // Paths that don't require authentication
+    private static final List<String> EXCLUDED_PATHS = List.of(
+            "/api/users/register",
+            "/api/users/login",
+            "/api/users/forgot-password",
+            "/api/users/reset-password",
+            "/api/users/refresh-token",
+            "/api/inventory/health",
+            "/api/tickets/health",
+            "/api/payments/health",
+            "/api/notifications/health",
+            "/actuator"
+    );
 
-		// Skip authentication for excluded paths
-		if (EXCLUDED_PATHS.stream().anyMatch(path::startsWith)) {
-			return chain.filter(exchange);
-		}
+    // Paths that require admin role
+    private static final List<String> ADMIN_PATHS = List.of(
+            "/api/users/roles",
+            "/api/users/status",
+            "/api/inventory/routes",
+            "/api/inventory/trains",
+            "/api/inventory/schedules/bulk",
+            "/api/payments/stats",
+            "/api/notifications/retry-failed"
+    );
 
-		String authHeader = request.getHeaders().getFirst("Authorization");
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        ServerHttpRequest request = exchange.getRequest();
+        String path = request.getURI().getPath();
+        String method = request.getMethod().toString();
 
-		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			ServerHttpResponse response = exchange.getResponse();
-			response.setStatusCode(HttpStatus.UNAUTHORIZED);
-			return response.setComplete();
-		}
+        logger.debug("Processing request: {} {}", method, path);
 
-		String token = authHeader.substring(7);
+        // Skip authentication for excluded paths
+        if (isExcludedPath(path)) {
+            logger.debug("Skipping authentication for excluded path: {}", path);
+            return chain.filter(exchange);
+        }
 
-		if (!jwtUtil.validateToken(token)) {
-			ServerHttpResponse response = exchange.getResponse();
-			response.setStatusCode(HttpStatus.UNAUTHORIZED);
-			return response.setComplete();
-		}
+        // Extract and validate token
+        String authHeader = request.getHeaders().getFirst("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.warn("Missing or invalid Authorization header for path: {}", path);
+            return onUnauthorized(exchange, "Missing or invalid authorization token");
+        }
 
-		// Add user info to headers for downstream services
-		String username = jwtUtil.extractUsername(token);
-		Long userId = jwtUtil.extractUserId(token);
-		ServerHttpRequest modifiedRequest = request.mutate()
-				.header("X-User-Name", username)
-				.header("X-User-Id", userId != null ? userId.toString() : "")
-				.build();
+        String token = authHeader.substring(7);
 
-		return chain.filter(exchange.mutate().request(modifiedRequest).build());
-	}
+        try {
+            if (!jwtUtil.validateToken(token)) {
+                logger.warn("Invalid or expired token for path: {}", path);
+                return onUnauthorized(exchange, "Token is invalid or expired");
+            }
 
-	@Override
-	public int getOrder() {
-		return -100;
-	}
+            // Extract user information from token
+            String username = jwtUtil.extractUsername(token);
+            Long userId = jwtUtil.extractUserId(token);
+            Set<String> roles = jwtUtil.extractRoles(token);
+
+            logger.debug("Authenticated user: {} (id: {}) for path: {}", username, userId, path);
+
+            // Check admin access for restricted paths
+            if (isAdminPath(path) && !roles.contains("ADMIN")) {
+                logger.warn("Forbidden access attempt by user {} to admin path: {}", username, path);
+                return onForbidden(exchange, "Access denied. Admin role required.");
+            }
+
+            // Add user context to headers for downstream services
+            ServerHttpRequest modifiedRequest = request.mutate()
+                    .header("X-User-Id", userId != null ? userId.toString() : "")
+                    .header("X-User-Name", username)
+                    .header("X-User-Roles", String.join(",", roles))
+                    .build();
+
+            return chain.filter(exchange.mutate().request(modifiedRequest).build());
+
+        } catch (Exception e) {
+            logger.error("Error processing JWT token", e);
+            return onUnauthorized(exchange, "Error processing authentication token");
+        }
+    }
+
+    @Override
+    public int getOrder() {
+        return -100; // High priority - runs before other filters
+    }
+
+    private boolean isExcludedPath(String path) {
+        return EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
+    }
+
+    private boolean isAdminPath(String path) {
+        return ADMIN_PATHS.stream().anyMatch(path::contains);
+    }
+
+    private Mono<Void> onUnauthorized(ServerWebExchange exchange, String message) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        response.getHeaders().add("Content-Type", "application/json");
+        String body = String.format("{\"success\":false,\"message\":\"%s\",\"statusCode\":401}", message);
+        return response.writeWith(Mono.just(response.bufferFactory().wrap(body.getBytes())));
+    }
+
+    private Mono<Void> onForbidden(ServerWebExchange exchange, String message) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(HttpStatus.FORBIDDEN);
+        response.getHeaders().add("Content-Type", "application/json");
+        String body = String.format("{\"success\":false,\"message\":\"%s\",\"statusCode\":403}", message);
+        return response.writeWith(Mono.just(response.bufferFactory().wrap(body.getBytes())));
+    }
 }

@@ -1,110 +1,163 @@
 package com.example.notificationservice.entity;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications", indexes = {
+    @Index(name = "idx_notification_user", columnList = "userId"),
+    @Index(name = "idx_notification_type", columnList = "type"),
+    @Index(name = "idx_notification_status", columnList = "status"),
+    @Index(name = "idx_notification_created", columnList = "createdAt"),
+    @Index(name = "idx_notification_read", columnList = "readAt")
+})
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Notification {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-	@Column(nullable = false)
-	private Long userId;
+    @Column(nullable = false)
+    private Long userId;
 
-	@Column(nullable = false)
-	private String type;
+    @Column(length = 100)
+    private String userEmail;
 
-	@Column(nullable = false, columnDefinition = "TEXT")
-	private String message;
+    @Column(length = 20)
+    private String userPhone;
 
-	@Column(nullable = false)
-	private String channel; // EMAIL, SMS
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private NotificationType type;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
-	private NotificationStatus status = NotificationStatus.PENDING;
+    @Column(nullable = false, length = 200)
+    private String title;
 
-	@Column(nullable = false)
-	private LocalDateTime createdAt;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String message;
 
-	@Column(nullable = false)
-	private LocalDateTime sentAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private NotificationChannel channel;
 
-	@PrePersist
-	protected void onCreate() {
-		createdAt = LocalDateTime.now();
-	}
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private NotificationStatus status = NotificationStatus.PENDING;
 
-	public enum NotificationStatus {
-		PENDING, SENT, FAILED
-	}
+    @Column(length = 50)
+    private String templateCode;
 
-	// Getters and Setters
-	public Long getId() {
-		return id;
-	}
+    private Long referenceId; // ticketId, paymentId, etc.
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Column(length = 50)
+    private String referenceType; // TICKET, PAYMENT, etc.
 
-	public Long getUserId() {
-		return userId;
-	}
+    @Column(length = 500)
+    private String errorMessage;
 
-	public void setUserId(Long userId) {
-		this.userId = userId;
-	}
+    private Integer retryCount;
 
-	public String getType() {
-		return type;
-	}
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-	public void setType(String type) {
-		this.type = type;
-	}
+    private LocalDateTime sentAt;
 
-	public String getMessage() {
-		return message;
-	}
+    private LocalDateTime readAt;
 
-	public void setMessage(String message) {
-		this.message = message;
-	}
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        if (retryCount == null) {
+            retryCount = 0;
+        }
+    }
 
-	public String getChannel() {
-		return channel;
-	}
+    public enum NotificationType {
+        BOOKING_CONFIRMATION("Booking Confirmation"),
+        BOOKING_CANCELLATION("Booking Cancellation"),
+        PAYMENT_SUCCESS("Payment Success"),
+        PAYMENT_FAILED("Payment Failed"),
+        PAYMENT_REFUND("Payment Refund"),
+        TRIP_REMINDER("Trip Reminder"),
+        SCHEDULE_CHANGE("Schedule Change"),
+        PROMOTIONAL("Promotional"),
+        WELCOME("Welcome"),
+        PASSWORD_RESET("Password Reset"),
+        ACCOUNT_UPDATE("Account Update"),
+        SYSTEM("System Notification");
 
-	public void setChannel(String channel) {
-		this.channel = channel;
-	}
+        private final String description;
 
-	public NotificationStatus getStatus() {
-		return status;
-	}
+        NotificationType(String description) {
+            this.description = description;
+        }
 
-	public void setStatus(NotificationStatus status) {
-		this.status = status;
-	}
+        public String getDescription() {
+            return description;
+        }
+    }
 
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
-	}
+    public enum NotificationChannel {
+        EMAIL("Email"),
+        SMS("SMS"),
+        PUSH("Push Notification"),
+        IN_APP("In-App Notification");
 
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
-	}
+        private final String description;
 
-	public LocalDateTime getSentAt() {
-		return sentAt;
-	}
+        NotificationChannel(String description) {
+            this.description = description;
+        }
 
-	public void setSentAt(LocalDateTime sentAt) {
-		this.sentAt = sentAt;
-	}
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    public enum NotificationStatus {
+        PENDING("Pending"),
+        SENDING("Sending"),
+        SENT("Sent"),
+        DELIVERED("Delivered"),
+        READ("Read"),
+        FAILED("Failed");
+
+        private final String description;
+
+        NotificationStatus(String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    // Helper methods
+    public boolean canRetry() {
+        return status == NotificationStatus.FAILED && retryCount < 3;
+    }
+
+    public void incrementRetry() {
+        this.retryCount++;
+    }
 }
-
