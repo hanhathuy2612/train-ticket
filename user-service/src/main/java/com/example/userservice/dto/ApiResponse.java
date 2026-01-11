@@ -15,13 +15,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
-    
+
     private boolean success;
     private String message;
     private int statusCode;
     private T data;
     private LocalDateTime timestamp;
-    
+
     public static <T> ApiResponse<T> success(T data) {
         return ApiResponse.<T>builder()
                 .success(true)
@@ -31,7 +31,7 @@ public class ApiResponse<T> {
                 .timestamp(LocalDateTime.now())
                 .build();
     }
-    
+
     public static <T> ApiResponse<T> success(String message, T data) {
         return ApiResponse.<T>builder()
                 .success(true)
@@ -41,7 +41,7 @@ public class ApiResponse<T> {
                 .timestamp(LocalDateTime.now())
                 .build();
     }
-    
+
     public static <T> ApiResponse<T> created(T data) {
         return ApiResponse.<T>builder()
                 .success(true)
@@ -51,7 +51,7 @@ public class ApiResponse<T> {
                 .timestamp(LocalDateTime.now())
                 .build();
     }
-    
+
     public static <T> ApiResponse<T> error(String message, int statusCode) {
         return ApiResponse.<T>builder()
                 .success(false)
@@ -61,4 +61,3 @@ public class ApiResponse<T> {
                 .build();
     }
 }
-

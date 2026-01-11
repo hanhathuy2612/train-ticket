@@ -1,5 +1,7 @@
 package com.example.userservice.controller;
 
+import java.util.Objects;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -205,13 +207,13 @@ public class UserController {
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
         logger.debug("Get all users - page: {}, size: {}", page, size);
-        
+
         size = Math.min(size, MAX_PAGE_SIZE);
-        Sort sort = sortDir.equalsIgnoreCase("asc") 
-                ? Sort.by(sortBy).ascending() 
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        
+
         Page<UserResponse> users = userService.getAllUsers(pageable);
         return ResponseEntity.ok(ApiResponse.success(users));
     }
@@ -226,10 +228,10 @@ public class UserController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         logger.debug("Search users with query: {}", q);
-        
+
         size = Math.min(size, MAX_PAGE_SIZE);
         Pageable pageable = PageRequest.of(page, size);
-        
+
         Page<UserResponse> users = userService.searchUsers(q, pageable);
         return ResponseEntity.ok(ApiResponse.success(users));
     }
@@ -256,6 +258,14 @@ public class UserController {
             @PathVariable Long id,
             @PathVariable Role role) {
         logger.info("Adding role {} to user {}", role, id);
+        if (Objects.isNull(id) || Objects.isNull(role)) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.<UserResponse>builder()
+                            .success(false)
+                            .message("Invalid request")
+                            .statusCode(HttpStatus.BAD_REQUEST.value())
+                            .build());
+        }
         UserResponse response = userService.updateUserRole(id, role, true);
         return ResponseEntity.ok(ApiResponse.success("Role added", response));
     }

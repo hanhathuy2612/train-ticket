@@ -13,6 +13,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -105,7 +106,7 @@ public class UserService {
     @Transactional
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         String refreshToken = request.getRefreshToken();
-        
+
         if (!jwtUtil.validateToken(refreshToken) || !jwtUtil.isRefreshToken(refreshToken)) {
             throw new InvalidTokenException("Invalid refresh token");
         }
@@ -216,10 +217,10 @@ public class UserService {
         }
 
         userRepository.updatePassword(userId, passwordEncoder.encode(request.getNewPassword()));
-        
+
         // Invalidate all sessions
         logout(userId);
-        
+
         logger.info("Password changed for user: {}", userId);
     }
 
@@ -283,13 +284,13 @@ public class UserService {
     @CacheEvict(value = "users", key = "#userId")
     public void updateUserStatus(Long userId, boolean active) {
         logger.info("Updating status for user {}: active={}", userId, active);
-        
+
         if (!userRepository.existsById(userId)) {
             throw new UserNotFoundException(userId);
         }
-        
+
         userRepository.updateActiveStatus(userId, active);
-        
+
         if (!active) {
             logout(userId);
         }
@@ -297,7 +298,7 @@ public class UserService {
 
     @Transactional
     @CacheEvict(value = "users", key = "#userId")
-    public UserResponse updateUserRole(Long userId, Role role, boolean add) {
+    public UserResponse updateUserRole(@NonNull Long userId, @NonNull Role role, boolean add) {
         logger.info("Updating role for user {}: role={}, add={}", userId, role, add);
 
         User user = userRepository.findById(userId)
@@ -357,20 +358,17 @@ public class UserService {
                 SESSION_CACHE_PREFIX + user.getId(),
                 accessToken,
                 SESSION_HOURS,
-                TimeUnit.HOURS
-        );
+                TimeUnit.HOURS);
         redisTemplate.opsForValue().set(
                 REFRESH_TOKEN_PREFIX + user.getId(),
                 refreshToken,
                 REFRESH_TOKEN_DAYS,
-                TimeUnit.DAYS
-        );
+                TimeUnit.DAYS);
 
         return AuthResponse.from(
                 accessToken,
                 refreshToken,
                 jwtUtil.getAccessTokenExpirationMs() / 1000,
-                user
-        );
+                user);
     }
 }
