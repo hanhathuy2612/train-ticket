@@ -21,7 +21,7 @@ Hệ thống sử dụng kiến trúc microservices với các service sau:
 - **Spring Cloud Eureka** cho service discovery
 - **PostgreSQL** cho database chính
 - **Redis** cho caching và distributed locks
-- **RabbitMQ** cho message queue
+- **Kafka** cho message queue
 - **JWT** cho authentication
 - **Resilience4j** cho circuit breaker và rate limiting
 - **HikariCP** cho connection pooling
@@ -39,11 +39,13 @@ Project sử dụng **Poe the Poet** để quản lý commands dễ dàng.
 ### Sử dụng Poe
 
 Xem tất cả tasks:
+
 ```bash
 poe
 ```
 
 Các commands phổ biến:
+
 ```bash
 poe up            # Build và chạy tất cả services
 poe up-d          # Chạy ở background
@@ -72,6 +74,7 @@ Xem file `.poe-help.md` để biết danh sách đầy đủ các tasks.
 ### Cách 1: Sử dụng Task Runner (Khuyến nghị)
 
 **Với Justfile:**
+
 ```bash
 just up-d          # Khởi động tất cả services
 just logs          # Xem logs
@@ -79,6 +82,7 @@ just health        # Kiểm tra health
 ```
 
 **Với Makefile:**
+
 ```bash
 make up-d          # Khởi động tất cả services
 make logs          # Xem logs
@@ -94,6 +98,7 @@ docker-compose up -d
 ```
 
 Lệnh này sẽ khởi động:
+
 - PostgreSQL (port 5432)
 - Redis (port 6379)
 - RabbitMQ (port 5672, Management UI: http://localhost:15672)
@@ -112,36 +117,42 @@ Eureka Server sẽ chạy tại: http://localhost:8761
 Mở các terminal riêng và chạy từng service:
 
 **User Service:**
+
 ```bash
 cd user-service
 ./gradlew bootRun
 ```
 
 **Inventory Service:**
+
 ```bash
 cd inventory-service
 ./gradlew bootRun
 ```
 
 **Ticket Service:**
+
 ```bash
 cd ticket-service
 ./gradlew bootRun
 ```
 
 **Payment Service:**
+
 ```bash
 cd payment-service
 ./gradlew bootRun
 ```
 
 **Notification Service:**
+
 ```bash
 cd notification-service
 ./gradlew bootRun
 ```
 
 **API Gateway:**
+
 ```bash
 cd apigateway
 ./gradlew bootRun
@@ -179,37 +190,44 @@ Tất cả requests đều đi qua API Gateway tại `http://localhost:8080`
 ## Tính năng Performance
 
 ### Caching
+
 - Redis cache cho tickets và inventory data
 - Cache invalidation khi có thay đổi
 - TTL cho cache entries
 
 ### Concurrency Control
+
 - Optimistic locking với @Version trong entities
 - Distributed locks với Redisson cho seat reservation
 - Database transactions cho critical operations
 
 ### Rate Limiting
+
 - API Gateway level rate limiting
 - Redis-based sliding window counter
 
 ### Connection Pooling
+
 - HikariCP với cấu hình tối ưu
 - Connection pool size: 20
 - Idle timeout và max lifetime được cấu hình
 
 ### Async Processing
+
 - RabbitMQ cho notifications
 - Non-blocking operations cho heavy tasks
 
 ## Monitoring
 
 Tất cả services đều có Spring Boot Actuator enabled:
+
 - Health checks: `http://localhost:{port}/actuator/health`
 - Metrics: `http://localhost:{port}/actuator/metrics`
 
 ## Database Schema
 
 Các bảng chính:
+
 - `users`: Thông tin người dùng
 - `trains`: Thông tin chuyến tàu
 - `seats`: Thông tin ghế
@@ -241,4 +259,3 @@ Các bảng chính:
 - JWT secret được hardcode trong config (nên sử dụng environment variables trong production)
 - Payment gateway được simulate (cần tích hợp thực tế)
 - Email/SMS notifications được simulate (cần tích hợp thực tế)
-

@@ -44,8 +44,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/tickets/health",
             "/api/payments/health",
             "/api/notifications/health",
-            "/actuator"
-    );
+            "/actuator");
 
     // Paths that require admin role
     private static final List<String> ADMIN_PATHS = List.of(
@@ -55,8 +54,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/inventory/trains",
             "/api/inventory/schedules/bulk",
             "/api/payments/stats",
-            "/api/notifications/retry-failed"
-    );
+            "/api/notifications/retry-failed");
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {

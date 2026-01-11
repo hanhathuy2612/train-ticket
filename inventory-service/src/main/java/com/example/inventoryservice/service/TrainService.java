@@ -158,10 +158,10 @@ public class TrainService {
 
     private void generateSeats(Train train) {
         logger.debug("Generating seats for train: {}", train.getId());
-        
+
         int seatCounter = 1;
         int carNumber = 1;
-        
+
         // Generate economy seats
         for (int i = 0; i < train.getEconomySeats(); i++) {
             String seatNumber = String.valueOf(seatCounter) + (char) ('A' + (i % 4));
@@ -173,13 +173,15 @@ public class TrainService {
                     .position(i % 4 == 0 || i % 4 == 3 ? "WINDOW" : "AISLE")
                     .build();
             seatRepository.save(seat);
-            if ((i + 1) % 4 == 0) seatCounter++;
-            if ((i + 1) % 40 == 0) carNumber++;
+            if ((i + 1) % 4 == 0)
+                seatCounter++;
+            if ((i + 1) % 40 == 0)
+                carNumber++;
         }
-        
+
         carNumber++;
         seatCounter = 1;
-        
+
         // Generate business seats
         for (int i = 0; i < train.getBusinessSeats(); i++) {
             String seatNumber = "B" + seatCounter + (char) ('A' + (i % 3));
@@ -191,10 +193,12 @@ public class TrainService {
                     .position(i % 3 == 0 || i % 3 == 2 ? "WINDOW" : "AISLE")
                     .build();
             seatRepository.save(seat);
-            if ((i + 1) % 3 == 0) seatCounter++;
-            if ((i + 1) % 24 == 0) carNumber++;
+            if ((i + 1) % 3 == 0)
+                seatCounter++;
+            if ((i + 1) % 24 == 0)
+                carNumber++;
         }
-        
+
         // Generate first class seats
         if (train.getFirstClassSeats() > 0) {
             carNumber++;
@@ -209,14 +213,15 @@ public class TrainService {
                         .position(i % 2 == 0 ? "WINDOW" : "AISLE")
                         .build();
                 seatRepository.save(seat);
-                if ((i + 1) % 2 == 0) seatCounter++;
-                if ((i + 1) % 12 == 0) carNumber++;
+                if ((i + 1) % 2 == 0)
+                    seatCounter++;
+                if ((i + 1) % 12 == 0)
+                    carNumber++;
             }
         }
-        
-        logger.debug("Generated {} seats for train: {}", 
-                train.getEconomySeats() + train.getBusinessSeats() + train.getFirstClassSeats(), 
+
+        logger.debug("Generated {} seats for train: {}",
+                train.getEconomySeats() + train.getBusinessSeats() + train.getFirstClassSeats(),
                 train.getId());
     }
 }
-

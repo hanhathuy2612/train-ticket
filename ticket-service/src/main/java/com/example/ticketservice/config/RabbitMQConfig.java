@@ -102,9 +102,12 @@ public class RabbitMQConfig {
 	// RabbitTemplate with JSON converter
 	@Bean
 	public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
-		RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-		rabbitTemplate.setMessageConverter(jsonMessageConverter());
-		return rabbitTemplate;
+		MessageConverter messageConverter = jsonMessageConverter();
+		if (connectionFactory != null && messageConverter != null) {
+			RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+			rabbitTemplate.setMessageConverter(messageConverter);
+			return rabbitTemplate;
+		}
+		throw new IllegalArgumentException("ConnectionFactory or MessageConverter is null");
 	}
 }
-

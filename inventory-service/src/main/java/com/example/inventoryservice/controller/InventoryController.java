@@ -3,6 +3,7 @@ package com.example.inventoryservice.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,7 +16,6 @@ import com.example.inventoryservice.dto.AvailabilityResponse;
 import com.example.inventoryservice.dto.ReserveSeatRequest;
 import com.example.inventoryservice.service.InventoryService;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -46,8 +46,8 @@ public class InventoryController {
      */
     @PostMapping("/reserve")
     public ResponseEntity<ApiResponse<Boolean>> reserveSeats(
-            @Valid @RequestBody ReserveSeatRequest request) {
-        logger.info("Reserve {} seats for train {} on {}", 
+            @Validated @RequestBody ReserveSeatRequest request) {
+        logger.info("Reserve {} seats for train {} on {}",
                 request.getNumberOfSeats(), request.getTrainId(), request.getDepartureDate());
         boolean success = inventoryService.reserveSeats(request);
         if (success) {

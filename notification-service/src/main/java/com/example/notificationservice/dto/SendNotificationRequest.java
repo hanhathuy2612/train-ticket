@@ -45,4 +45,3 @@ public class SendNotificationRequest {
 
     private Map<String, Object> templateData;
 }
-

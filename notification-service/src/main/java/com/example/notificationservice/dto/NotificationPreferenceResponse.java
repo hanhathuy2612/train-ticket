@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class NotificationPreferenceResponse {
-    
+
     private Long userId;
     private EmailPreferences email;
     private SmsPreferences sms;
@@ -91,4 +91,3 @@ public class NotificationPreferenceResponse {
                 .build();
     }
 }
-

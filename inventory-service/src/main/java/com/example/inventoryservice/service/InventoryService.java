@@ -21,10 +21,8 @@ import com.example.inventoryservice.entity.Schedule;
 import com.example.inventoryservice.entity.Train;
 import com.example.inventoryservice.exception.InsufficientSeatsException;
 import com.example.inventoryservice.exception.ScheduleNotFoundException;
-import com.example.inventoryservice.exception.TrainNotFoundException;
 import com.example.inventoryservice.repository.InventoryRepository;
 import com.example.inventoryservice.repository.ScheduleRepository;
-import com.example.inventoryservice.repository.TrainRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,7 +32,7 @@ import lombok.RequiredArgsConstructor;
 public class InventoryService {
 
     private static final Logger logger = LoggerFactory.getLogger(InventoryService.class);
-    
+
     private static final String LOCK_PREFIX = "inventory:lock:";
     private static final String CACHE_PREFIX = "inventory:";
     private static final int LOCK_WAIT_TIME = 5;
@@ -43,16 +41,15 @@ public class InventoryService {
 
     private final InventoryRepository inventoryRepository;
     private final ScheduleRepository scheduleRepository;
-    private final TrainRepository trainRepository;
     private final RedissonClient redissonClient;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Cacheable(value = "inventory", key = "#trainId + ':' + #departureDate")
     public AvailabilityResponse checkAvailability(Long trainId, String departureDate) {
         logger.debug("Checking availability for train {} on {}", trainId, departureDate);
-        
+
         LocalDate date = parseDate(departureDate);
-        
+
         Optional<Schedule> scheduleOpt = scheduleRepository.findByTrainIdAndDepartureDate(trainId, date);
         if (scheduleOpt.isEmpty()) {
             logger.debug("No schedule found for train {} on {}", trainId, date);
@@ -163,7 +160,7 @@ public class InventoryService {
 
     private boolean doReserveSeats(ReserveSeatRequest request) {
         LocalDate date = parseDate(request.getDepartureDate());
-        
+
         Schedule schedule = scheduleRepository.findByTrainIdAndDepartureDateWithLock(
                 request.getTrainId(), date)
                 .orElseThrow(() -> new ScheduleNotFoundException(request.getTrainId(), date));
@@ -207,7 +204,7 @@ public class InventoryService {
         Inventory inventory = inventoryRepository.findByTrainIdAndDepartureDateWithLock(
                 request.getTrainId(), date)
                 .orElse(null);
-        
+
         if (inventory != null) {
             inventory.setAvailableSeats(inventory.getAvailableSeats() - requested);
             inventory.setReservedSeats(inventory.getReservedSeats() + requested);
@@ -225,14 +222,14 @@ public class InventoryService {
         // Evict cache
         evictCache(request.getTrainId(), request.getDepartureDate());
 
-        logger.info("Reserved {} {} seats for train {} on {}", 
+        logger.info("Reserved {} {} seats for train {} on {}",
                 requested, seatClass, request.getTrainId(), request.getDepartureDate());
         return true;
     }
 
     private boolean doReleaseSeats(Long trainId, String departureDate, Integer numberOfSeats, String seatClass) {
         LocalDate date = parseDate(departureDate);
-        
+
         Optional<Schedule> scheduleOpt = scheduleRepository.findByTrainIdAndDepartureDateWithLock(trainId, date);
         if (scheduleOpt.isEmpty()) {
             logger.warn("Schedule not found for release: train={}, date={}", trainId, date);
@@ -276,7 +273,7 @@ public class InventoryService {
         // Evict cache
         evictCache(trainId, departureDate);
 
-        logger.info("Released {} {} seats for train {} on {}", 
+        logger.info("Released {} {} seats for train {} on {}",
                 numberOfSeats, effectiveSeatClass, trainId, departureDate);
         return true;
     }

@@ -16,16 +16,13 @@ public interface PaymentServiceClient {
 	@PostMapping("/payments/process")
 	PaymentResponse processPayment(
 			@RequestHeader("X-User-Id") Long userId,
-			@RequestBody PaymentRequest request
-	);
+			@RequestBody PaymentRequest request);
 
 	@PostMapping("/payments/{paymentId}/refund")
 	PaymentResponse refundPayment(
 			@PathVariable("paymentId") Long paymentId,
-			@RequestHeader("X-User-Id") Long userId
-	);
+			@RequestHeader("X-User-Id") Long userId);
 
 	@GetMapping("/payments/ticket/{ticketId}")
 	PaymentResponse getPaymentByTicketId(@PathVariable("ticketId") Long ticketId);
 }
-

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -60,13 +61,13 @@ public class TrainController {
             @RequestParam(defaultValue = "trainNumber") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
         logger.debug("Get all trains - page: {}, size: {}", page, size);
-        
+
         size = Math.min(size, MAX_PAGE_SIZE);
-        Sort sort = sortDir.equalsIgnoreCase("asc") 
-                ? Sort.by(sortBy).ascending() 
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        
+
         Page<TrainResponse> trains = trainService.getAllTrains(pageable);
         return ResponseEntity.ok(ApiResponse.success(trains));
     }
@@ -77,10 +78,10 @@ public class TrainController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         logger.debug("Search trains with query: {}", q);
-        
+
         size = Math.min(size, MAX_PAGE_SIZE);
         Pageable pageable = PageRequest.of(page, size);
-        
+
         Page<TrainResponse> trains = trainService.searchTrains(q, pageable);
         return ResponseEntity.ok(ApiResponse.success(trains));
     }
@@ -104,7 +105,7 @@ public class TrainController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<TrainResponse>> createTrain(
-            @Valid @RequestBody CreateTrainRequest request) {
+            @Validated @RequestBody CreateTrainRequest request) {
         logger.info("Create train: {}", request.getTrainNumber());
         TrainResponse response = trainService.createTrain(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -114,7 +115,7 @@ public class TrainController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<TrainResponse>> updateTrain(
             @PathVariable Long id,
-            @Valid @RequestBody CreateTrainRequest request) {
+            @Validated @RequestBody CreateTrainRequest request) {
         logger.info("Update train: {}", id);
         TrainResponse response = trainService.updateTrain(id, request);
         return ResponseEntity.ok(ApiResponse.success("Train updated", response));
@@ -132,4 +133,3 @@ public class TrainController {
         return ResponseEntity.ok(ApiResponse.success("Train Service is healthy"));
     }
 }
-

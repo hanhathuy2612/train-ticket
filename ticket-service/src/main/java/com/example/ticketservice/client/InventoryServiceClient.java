@@ -1,7 +1,5 @@
 package com.example.ticketservice.client;
 
-import java.util.Map;
-
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,8 +15,7 @@ public interface InventoryServiceClient {
 	@GetMapping("/inventory/availability")
 	AvailabilityResponse checkAvailability(
 			@RequestParam("trainId") Long trainId,
-			@RequestParam("departureDate") String departureDate
-	);
+			@RequestParam("departureDate") String departureDate);
 
 	@PostMapping("/inventory/reserve")
 	Boolean reserveSeats(@RequestBody ReserveSeatRequest request);
@@ -27,6 +24,5 @@ public interface InventoryServiceClient {
 	Boolean releaseSeats(
 			@RequestParam("trainId") Long trainId,
 			@RequestParam("departureDate") String departureDate,
-			@RequestParam("numberOfSeats") Integer numberOfSeats
-	);
+			@RequestParam("numberOfSeats") Integer numberOfSeats);
 }

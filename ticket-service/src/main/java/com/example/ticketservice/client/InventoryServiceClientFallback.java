@@ -9,7 +9,7 @@ import com.example.ticketservice.dto.ReserveSeatRequest;
 
 @Component
 public class InventoryServiceClientFallback implements InventoryServiceClient {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(InventoryServiceClientFallback.class);
 
 	@Override
@@ -34,8 +34,8 @@ public class InventoryServiceClientFallback implements InventoryServiceClient {
 	@Override
 	public Boolean releaseSeats(Long trainId, String departureDate, Integer numberOfSeats) {
 		logger.error("Fallback: Inventory service is unavailable for releaseSeats. TrainId: {}", trainId);
-		// Return true to allow ticket cancellation to proceed, seats will be released later
+		// Return true to allow ticket cancellation to proceed, seats will be released
+		// later
 		return true;
 	}
 }
-

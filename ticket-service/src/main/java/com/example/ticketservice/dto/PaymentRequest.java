@@ -12,9 +12,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentRequest {
-	
+
 	private Long ticketId;
 	private BigDecimal amount;
 	private String paymentMethod; // CREDIT_CARD, DEBIT_CARD, BANK_TRANSFER, E_WALLET
 }
-

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,7 +28,6 @@ import com.example.notificationservice.dto.SendNotificationRequest;
 import com.example.notificationservice.dto.UpdatePreferenceRequest;
 import com.example.notificationservice.service.NotificationService;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -52,10 +52,10 @@ public class NotificationController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         logger.debug("Get notifications for user: {}", userId);
-        
+
         size = Math.min(size, MAX_PAGE_SIZE);
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        
+
         Page<NotificationResponse> notifications = notificationService.getUserNotifications(userId, pageable);
         return ResponseEntity.ok(ApiResponse.success(notifications));
     }
@@ -154,7 +154,7 @@ public class NotificationController {
      */
     @PostMapping("/send")
     public ResponseEntity<ApiResponse<NotificationResponse>> sendNotification(
-            @Valid @RequestBody SendNotificationRequest request) {
+            @Validated @RequestBody SendNotificationRequest request) {
         logger.info("Send notification to user: {}", request.getUserId());
         NotificationResponse response = notificationService.sendNotification(request);
         if (response == null) {
@@ -174,10 +174,10 @@ public class NotificationController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         logger.debug("Get notifications for user: {}", userId);
-        
+
         size = Math.min(size, MAX_PAGE_SIZE);
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        
+
         Page<NotificationResponse> notifications = notificationService.getUserNotifications(userId, pageable);
         return ResponseEntity.ok(ApiResponse.success(notifications));
     }
@@ -202,4 +202,3 @@ public class NotificationController {
         return ResponseEntity.ok(ApiResponse.success("Notification Service is healthy"));
     }
 }
-
