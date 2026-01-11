@@ -282,7 +282,7 @@ public class UserService {
 
     @Transactional
     @CacheEvict(value = "users", key = "#userId")
-    public void updateUserStatus(Long userId, boolean active) {
+    public void updateUserStatus(@NonNull Long userId, boolean active) {
         logger.info("Updating status for user {}: active={}", userId, active);
 
         if (!userRepository.existsById(userId)) {

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,6 +36,7 @@ import com.example.userservice.service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -242,7 +244,7 @@ public class UserController {
      */
     @PutMapping("/{id}/status")
     public ResponseEntity<ApiResponse<Void>> updateUserStatus(
-            @PathVariable Long id,
+            @PathVariable @NonNull Long id,
             @RequestParam boolean active) {
         logger.info("Update user {} status to: {}", id, active);
         userService.updateUserStatus(id, active);
