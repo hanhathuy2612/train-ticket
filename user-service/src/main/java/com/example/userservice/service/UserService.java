@@ -14,7 +14,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.NonNull;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +49,7 @@ public class UserService {
     private static final int PASSWORD_RESET_HOURS = 1;
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    // PasswordEncoder removed - authentication handled by Keycloak
     private final JwtUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -62,10 +61,12 @@ public class UserService {
 
         validateRegistration(request);
 
+        // Note: Password management is handled by Keycloak
+        // User registration should be done through Keycloak, then sync user info here
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .password(null) // Password managed by Keycloak
                 .fullName(request.getFullName())
                 .phoneNumber(request.getPhoneNumber())
                 .address(request.getAddress())
@@ -81,26 +82,13 @@ public class UserService {
 
     @Transactional
     public AuthResponse login(LoginRequest request, String ipAddress) {
-        logger.info("Login attempt for user: {}", request.getUsername());
-
-        User user = userRepository.findByUsernameOrEmail(request.getUsername(), request.getUsername())
-                .orElseThrow(InvalidCredentialsException::new);
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            logger.warn("Invalid password for user: {}", request.getUsername());
-            throw new InvalidCredentialsException();
-        }
-
-        if (!user.getActive()) {
-            logger.warn("Login attempt for inactive user: {}", request.getUsername());
-            throw new InvalidCredentialsException("User account is inactive");
-        }
-
-        // Update last login info
-        userRepository.updateLastLogin(user.getId(), LocalDateTime.now(), ipAddress);
-
-        logger.info("User {} logged in successfully", user.getUsername());
-        return createAuthResponse(user);
+        // Note: Authentication is handled by Keycloak
+        // This method should only be used for internal service calls or legacy support
+        // For Keycloak integration, login should be done through Keycloak's token
+        // endpoint
+        logger.warn("Login method called - authentication should be handled by Keycloak");
+        throw new UnsupportedOperationException(
+                "Login is handled by Keycloak. Please use Keycloak's token endpoint for authentication.");
     }
 
     @Transactional
@@ -203,25 +191,11 @@ public class UserService {
 
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
-        logger.info("Changing password for user: {}", userId);
-
-        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new IllegalArgumentException("New password and confirm password do not match");
-        }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
-
-        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new InvalidCredentialsException("Current password is incorrect");
-        }
-
-        userRepository.updatePassword(userId, passwordEncoder.encode(request.getNewPassword()));
-
-        // Invalidate all sessions
-        logout(userId);
-
-        logger.info("Password changed for user: {}", userId);
+        // Note: Password management is handled by Keycloak
+        // Password changes should be done through Keycloak's user management API
+        logger.warn("Change password method called - password management should be handled by Keycloak");
+        throw new UnsupportedOperationException(
+                "Password changes are handled by Keycloak. Please use Keycloak's user management API.");
     }
 
     @Transactional
@@ -244,19 +218,11 @@ public class UserService {
 
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        logger.info("Resetting password with token");
-
-        User user = userRepository.findByPasswordResetToken(token)
-                .orElseThrow(() -> new InvalidTokenException("Invalid password reset token"));
-
-        if (user.getPasswordResetExpiry().isBefore(LocalDateTime.now())) {
-            throw new InvalidTokenException("Password reset token has expired");
-        }
-
-        userRepository.updatePassword(user.getId(), passwordEncoder.encode(newPassword));
-        logout(user.getId());
-
-        logger.info("Password reset successful for user: {}", user.getId());
+        // Note: Password reset is handled by Keycloak
+        // Password resets should be done through Keycloak's password reset flow
+        logger.warn("Reset password method called - password reset should be handled by Keycloak");
+        throw new UnsupportedOperationException(
+                "Password reset is handled by Keycloak. Please use Keycloak's password reset flow.");
     }
 
     // ============ Admin Methods ============

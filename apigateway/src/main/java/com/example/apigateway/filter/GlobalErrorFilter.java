@@ -27,14 +27,15 @@ import reactor.core.publisher.Mono;
 public class GlobalErrorFilter implements ErrorWebExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalErrorFilter.class);
+    private static final String CORRELATION_ID_HEADER = "X-Correlation-Id";
 
     @Override
     public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
         ServerHttpResponse response = exchange.getResponse();
-        
+
         String path = exchange.getRequest().getURI().getPath();
-        String correlationId = exchange.getRequest().getHeaders().getFirst("X-Correlation-Id");
-        
+        String correlationId = exchange.getRequest().getHeaders().getFirst(CORRELATION_ID_HEADER);
+
         HttpStatus status;
         String message;
         String errorCode;
@@ -69,19 +70,17 @@ public class GlobalErrorFilter implements ErrorWebExceptionHandler {
         if (!response.isCommitted()) {
             response.setStatusCode(status);
             response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-            
+
             String responseBody = String.format(
                     "{\"success\":false,\"message\":\"%s\",\"statusCode\":%d,\"errorCode\":\"%s\"," +
-                    "\"path\":\"%s\",\"correlationId\":\"%s\",\"timestamp\":\"%s\"}",
-                    message, status.value(), errorCode, path, 
+                            "\"path\":\"%s\",\"correlationId\":\"%s\",\"timestamp\":\"%s\"}",
+                    message, status.value(), errorCode, path,
                     correlationId != null ? correlationId : "N/A",
-                    LocalDateTime.now().toString()
-            );
-            
+                    LocalDateTime.now().toString());
+
             return response.writeWith(Mono.just(response.bufferFactory().wrap(responseBody.getBytes())));
         }
-        
+
         return Mono.empty();
     }
 }
-

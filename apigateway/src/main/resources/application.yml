@@ -1,81 +1,240 @@
+# ============================================================================
+# API GATEWAY CONFIGURATION
+# ============================================================================
+# This is the central entry point for all microservices requests.
+# It handles routing, authentication, rate limiting, and circuit breaking.
+
 spring:
+  # Application name registered in Eureka
   application:
     name: apigateway
+
+  # Force WebFlux (reactive) instead of Spring MVC
+  # Spring Cloud Gateway requires reactive stack
+  main:
+    web-application-type: reactive
+
+  # Redis configuration for caching and rate limiting
+  # Used by RateLimitFilter and potentially for distributed rate limiting
   data:
     redis:
       host: localhost
       port: 6379
-      timeout: 2000ms
+      timeout: 2000ms # Connection timeout
+
+  # Spring Cloud Gateway configuration
   cloud:
     gateway:
+      # ========================================================================
+      # HTTP CLIENT TIMEOUT CONFIGURATION
+      # ========================================================================
+      # Controls how long the gateway waits for connections and responses
+      # from downstream services
+      httpclient:
+        connect-timeout: 5000 # Max time to establish connection (5 seconds)
+        response-timeout: 30s # Max time to wait for response (30 seconds)
+
+      # ========================================================================
+      # CORS (Cross-Origin Resource Sharing) CONFIGURATION
+      # ========================================================================
+      # Allows frontend applications from different origins to access the API
+      # In production, replace "*" with specific allowed origins for security
+      globalcors:
+        cors-configurations:
+          "[/**]": # Apply to all paths
+            allowedOrigins: "*" # Allow all origins (change in production!)
+            allowedMethods: # HTTP methods allowed
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*" # Allow all headers
+            allowCredentials: true # Allow cookies/credentials
+            maxAge: 3600 # Cache preflight requests for 1 hour
+
+      # ========================================================================
+      # ROUTE CONFIGURATION
+      # ========================================================================
+      # Defines how requests are routed to backend microservices
+      # Each route has:
+      #   - id: Unique identifier
+      #   - uri: Target service (lb:// = load-balanced via Eureka)
+      #   - predicates: Conditions to match this route
+      #   - filters: Transformations applied to requests/responses
       routes:
+        # Route: User Service
+        # Matches: /api/users/** -> forwards to user-service
         - id: user-service
-          uri: lb://user-service
+          uri: lb://user-service # lb:// = load balance via Eureka service discovery
           predicates:
-            - Path=/api/users/**
+            - Path=/api/users/** # Match all paths starting with /api/users/
           filters:
-            - StripPrefix=1
+            - StripPrefix=1 # Remove /api prefix before forwarding
+            - name: CircuitBreaker # Enable circuit breaker for fault tolerance
+              args:
+                name: user-service-circuit-breaker
+                fallbackUri: forward:/fallback/user-service # Fallback when service is down
+
+        # Route: Ticket Service
+        # Matches: /api/tickets/** -> forwards to ticket-service
         - id: ticket-service
           uri: lb://ticket-service
           predicates:
             - Path=/api/tickets/**
           filters:
             - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: ticket-service-circuit-breaker
+                fallbackUri: forward:/fallback/ticket-service
+
+        # Route: Inventory Service
+        # Matches: /api/inventory/** -> forwards to inventory-service
         - id: inventory-service
           uri: lb://inventory-service
           predicates:
             - Path=/api/inventory/**
           filters:
             - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: inventory-service-circuit-breaker
+                fallbackUri: forward:/fallback/inventory-service
+
+        # Route: Payment Service
+        # Matches: /api/payments/** -> forwards to payment-service
         - id: payment-service
           uri: lb://payment-service
           predicates:
             - Path=/api/payments/**
           filters:
             - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: payment-service-circuit-breaker
+                fallbackUri: forward:/fallback/payment-service
+
+        # Route: Notification Service
+        # Matches: /api/notifications/** -> forwards to notification-service
         - id: notification-service
           uri: lb://notification-service
           predicates:
             - Path=/api/notifications/**
           filters:
             - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: notification-service-circuit-breaker
+                fallbackUri: forward:/fallback/notification-service
 
+# ============================================================================
+# SERVER CONFIGURATION
+# ============================================================================
 server:
-  port: 8080
+  port: 8080 # Gateway listens on port 8080
 
+# ============================================================================
+# EUREKA SERVICE DISCOVERY CONFIGURATION
+# ============================================================================
+# Eureka allows services to discover each other dynamically
+# Gateway uses Eureka to find backend service instances
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
-    fetch-registry: true
-    register-with-eureka: true
+      defaultZone: http://localhost:8761/eureka/ # Eureka server location
+    fetch-registry: true # Fetch service registry from Eureka
+    register-with-eureka: true # Register this gateway with Eureka
 
+# ============================================================================
+# RESILIENCE4J CONFIGURATION
+# ============================================================================
+# Provides circuit breaker and rate limiting capabilities
 resilience4j:
+  # Circuit Breaker: Prevents cascading failures
+  # Opens circuit when service fails too often, returns fallback response
   circuitbreaker:
     configs:
+      # Default configuration for all circuit breakers
       default:
+        slidingWindowSize: 10 # Number of calls to track
+        minimumNumberOfCalls: 5 # Minimum calls before circuit can open
+        failureRateThreshold: 50 # Open circuit if 50% of calls fail
+        waitDurationInOpenState: 10s # Wait 10s before trying again
+        permittedNumberOfCallsInHalfOpenState: 3 # Test with 3 calls when half-open
+
+      # Service-specific circuit breaker configurations
+      # Each service can have different thresholds based on criticality
+      user-service-circuit-breaker:
         slidingWindowSize: 10
         minimumNumberOfCalls: 5
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
-        permittedNumberOfCallsInHalfOpenState: 3
+      ticket-service-circuit-breaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      inventory-service-circuit-breaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      payment-service-circuit-breaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+      notification-service-circuit-breaker:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+
+  # Rate Limiter: Controls request rate
+  # Currently configured but not actively used (RateLimitFilter uses in-memory)
   ratelimiter:
     configs:
       default:
-        limitForPeriod: 100
-        limitRefreshPeriod: 1s
-        timeoutDuration: 0
+        limitForPeriod: 100 # Allow 100 requests
+        limitRefreshPeriod: 1s # Per 1 second
+        timeoutDuration: 0 # No timeout (fail immediately if limit exceeded)
 
+# ============================================================================
+# ACTUATOR (MONITORING) CONFIGURATION
+# ============================================================================
+# Exposes health checks, metrics, and monitoring endpoints
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus # Expose these endpoints
   endpoint:
     health:
-      show-details: always
+      show-details: always # Always show detailed health information
 
+# ============================================================================
+# KEYCLOAK CONFIGURATION
+# ============================================================================
+# Keycloak is used for authentication and authorization
+# JwtAuthenticationFilter validates Keycloak tokens and extracts user info
+keycloak:
+  # Keycloak server URL (e.g., http://localhost:8080 or https://keycloak.example.com)
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+
+  # Realm name configured in Keycloak
+  realm: ${KEYCLOAK_REALM:train-ticket}
+
+  # Client ID configured in Keycloak realm
+  # This should be a public client or confidential client with appropriate settings
+  client-id: ${KEYCLOAK_CLIENT_ID:train-ticket-gateway}
+
+# ============================================================================
+# JWT CONFIGURATION
+# ============================================================================
+# JWT secret key for token validation (used by JwtUtil)
+# Note: Gateway primarily uses KeycloakTokenValidator, but JwtUtil is still available
+# In production, use a strong secret key (at least 256 bits / 32 bytes)
 jwt:
-  secret: mySecretKeyForJWTTokenGenerationAndValidationMustBeAtLeast256BitsLong
-  expiration: 86400000
-
+  secret: ${JWT_SECRET:your-256-bit-secret-key-for-jwt-token-validation-minimum-32-characters-long}

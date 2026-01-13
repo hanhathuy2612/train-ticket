@@ -6,6 +6,6 @@ import org.springframework.retry.annotation.EnableRetry;
 @Configuration
 @EnableRetry
 public class RetryConfig {
-	// Enable Spring Retry for @Retryable annotations
-}
+    // Enable Spring Retry for @Retryable annotations
 
+}

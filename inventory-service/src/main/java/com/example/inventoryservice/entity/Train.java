@@ -30,10 +30,10 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "trains", indexes = {
-    @Index(name = "idx_train_number", columnList = "trainNumber"),
-    @Index(name = "idx_train_route", columnList = "route_id"),
-    @Index(name = "idx_train_active", columnList = "active"),
-    @Index(name = "idx_train_type", columnList = "trainType")
+        @Index(name = "idx_train_number", columnList = "trainNumber"),
+        @Index(name = "idx_train_route", columnList = "route_id"),
+        @Index(name = "idx_train_active", columnList = "active"),
+        @Index(name = "idx_train_type", columnList = "trainType")
 })
 @Data
 @Builder

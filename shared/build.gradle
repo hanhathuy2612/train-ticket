@@ -8,6 +8,16 @@ group = 'com.train.ticket'
 version = '0.0.1-SNAPSHOT'
 description = 'Shared Service'
 
+// Make this a library (not a Spring Boot application)
+jar {
+	enabled = true
+	archiveClassifier = '' // Remove '-plain' suffix
+}
+
+bootJar {
+	enabled = false // Don't create executable jar
+}
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(17)
@@ -20,8 +30,21 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	
+	// JWT for token verification in services
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+	
+	// WebClient for fetching Keycloak public keys
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.named('test') {

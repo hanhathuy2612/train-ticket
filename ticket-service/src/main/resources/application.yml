@@ -58,22 +58,22 @@ spring:
       time-to-live: 600000
       cache-null-values: false
 
-  # RabbitMQ Configuration
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: admin
-    password: admin
-    virtual-host: /
-    listener:
-      simple:
-        retry:
-          enabled: true
-          initial-interval: 1000
-          max-attempts: 3
-          max-interval: 10000
-          multiplier: 2
-        acknowledge-mode: auto
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ticket-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: true
 
 # Server Configuration
 server:
@@ -103,18 +103,10 @@ feign:
   circuitbreaker:
     enabled: true
 
-# RabbitMQ Custom Properties
-rabbitmq:
-  exchange:
-    booking: booking-exchange
-  queue:
-    booking-created: booking-created-queue
-    booking-confirmed: booking-confirmed-queue
-    booking-cancelled: booking-cancelled-queue
-  routing-key:
-    booking-created: booking.created
-    booking-confirmed: booking.confirmed
-    booking-cancelled: booking.cancelled
+# Kafka Custom Properties
+kafka:
+  topic:
+    booking-events: booking-events
 
 # Resilience4j Configuration
 resilience4j:
@@ -176,10 +168,25 @@ spring:
   data:
     redis:
       host: redis
-  rabbitmq:
-    host: rabbitmq
+  kafka:
+    bootstrap-servers: kafka:9093
 
 eureka:
   client:
     service-url:
       defaultZone: http://eureka-server:8761/eureka/
+
+# ============================================================================
+# KEYCLOAK CONFIGURATION (for token verification)
+# ============================================================================
+# Used by TokenVerificationInterceptor to verify tokens forwarded from gateway
+keycloak:
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+  realm: ${KEYCLOAK_REALM:train-ticket}
+
+# Token verification setting
+# Set to false to trust headers from gateway (for internal network)
+# In production with mTLS/internal network, you can set this to false
+token:
+  verification:
+    enabled: ${TOKEN_VERIFICATION_ENABLED:true}

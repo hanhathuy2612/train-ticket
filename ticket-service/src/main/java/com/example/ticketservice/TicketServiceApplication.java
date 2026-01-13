@@ -12,7 +12,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class TicketServiceApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(TicketServiceApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(TicketServiceApplication.class, args);
+    }
 }

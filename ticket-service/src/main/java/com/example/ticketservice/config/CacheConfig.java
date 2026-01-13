@@ -18,42 +18,42 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @EnableCaching
 public class CacheConfig {
 
-	@Bean
-	public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
-		RedisTemplate<String, Object> template = new RedisTemplate<>();
-		template.setConnectionFactory(connectionFactory);
-		
-		// Use String serializer for keys
-		template.setKeySerializer(new StringRedisSerializer());
-		template.setHashKeySerializer(new StringRedisSerializer());
-		
-		// Use JSON serializer for values
-		GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer();
-		template.setValueSerializer(jsonSerializer);
-		template.setHashValueSerializer(jsonSerializer);
-		
-		template.afterPropertiesSet();
-		return template;
-	}
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
 
-	@Bean
-	public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-		// Default cache configuration
-		RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
-				.entryTtl(Duration.ofMinutes(10))
-				.serializeKeysWith(RedisSerializationContext.SerializationPair
-						.fromSerializer(new StringRedisSerializer()))
-				.serializeValuesWith(RedisSerializationContext.SerializationPair
-						.fromSerializer(new GenericJackson2JsonRedisSerializer()))
-				.disableCachingNullValues();
+        // Use String serializer for keys
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
 
-		return RedisCacheManager.builder(connectionFactory)
-				.cacheDefaults(defaultConfig)
-				// Custom TTL for specific caches
-				.withCacheConfiguration("tickets", 
-						defaultConfig.entryTtl(Duration.ofMinutes(5)))
-				.withCacheConfiguration("userTickets", 
-						defaultConfig.entryTtl(Duration.ofMinutes(2)))
-				.build();
-	}
+        // Use JSON serializer for values
+        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer();
+        template.setValueSerializer(jsonSerializer);
+        template.setHashValueSerializer(jsonSerializer);
+
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    @Bean
+    public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        // Default cache configuration
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(10))
+                .serializeKeysWith(RedisSerializationContext.SerializationPair
+                        .fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair
+                        .fromSerializer(new GenericJackson2JsonRedisSerializer()))
+                .disableCachingNullValues();
+
+        return RedisCacheManager.builder(connectionFactory)
+                .cacheDefaults(defaultConfig)
+                // Custom TTL for specific caches
+                .withCacheConfiguration("tickets",
+                        defaultConfig.entryTtl(Duration.ofMinutes(5)))
+                .withCacheConfiguration("userTickets",
+                        defaultConfig.entryTtl(Duration.ofMinutes(2)))
+                .build();
+    }
 }

@@ -14,15 +14,17 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 
-import com.example.apigateway.util.JwtUtil;
+import com.example.apigateway.config.Constants;
+import com.example.apigateway.util.KeycloakTokenValidator;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
 /**
- * JWT Authentication Filter for Spring Cloud Gateway
+ * Keycloak Authentication Filter for Spring Cloud Gateway
  * 
- * This filter validates JWT tokens for protected routes and adds user context
+ * This filter validates Keycloak JWT tokens for protected routes and adds user
+ * context
  * to request headers for downstream services.
  */
 @Component
@@ -31,7 +33,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
-    private final JwtUtil jwtUtil;
+    private final KeycloakTokenValidator keycloakTokenValidator;
 
     // Paths that don't require authentication
     private static final List<String> EXCLUDED_PATHS = List.of(
@@ -71,44 +73,51 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         // Extract and validate token
-        String authHeader = request.getHeaders().getFirst("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        String authHeader = request.getHeaders().getFirst(Constants.AUTHORIZATION_HEADER);
+        if (authHeader == null || !authHeader.startsWith(Constants.BEARER_PREFIX)) {
             logger.warn("Missing or invalid Authorization header for path: {}", path);
             return onUnauthorized(exchange, "Missing or invalid authorization token");
         }
 
-        String token = authHeader.substring(7);
+        String token = authHeader.substring(Constants.BEARER_PREFIX.length());
 
         try {
-            if (!jwtUtil.validateToken(token)) {
-                logger.warn("Invalid or expired token for path: {}", path);
+            if (!keycloakTokenValidator.validateToken(token)) {
+                logger.warn("Invalid or expired Keycloak token for path: {}", path);
                 return onUnauthorized(exchange, "Token is invalid or expired");
             }
 
-            // Extract user information from token
-            String username = jwtUtil.extractUsername(token);
-            Long userId = jwtUtil.extractUserId(token);
-            Set<String> roles = jwtUtil.extractRoles(token);
+            // Extract user information from Keycloak token
+            String username = keycloakTokenValidator.extractUsername(token);
+            String userId = keycloakTokenValidator.extractUserId(token);
+            Set<String> roles = keycloakTokenValidator.extractRoles(token);
 
             logger.debug("Authenticated user: {} (id: {}) for path: {}", username, userId, path);
 
             // Check admin access for restricted paths
-            if (isAdminPath(path) && !roles.contains("ADMIN")) {
+            // Keycloak roles might be prefixed with realm or client name
+            boolean hasAdminRole = roles.stream()
+                    .anyMatch(role -> role.equals("ADMIN") || role.equals("admin") ||
+                            role.endsWith(":ADMIN") || role.endsWith(":admin"));
+
+            if (isAdminPath(path) && !hasAdminRole) {
                 logger.warn("Forbidden access attempt by user {} to admin path: {}", username, path);
                 return onForbidden(exchange, "Access denied. Admin role required.");
             }
 
-            // Add user context to headers for downstream services
+            // Add user context AND token to headers for downstream services
+            // Services can verify token signature if needed (hybrid approach)
             ServerHttpRequest modifiedRequest = request.mutate()
-                    .header("X-User-Id", userId != null ? userId.toString() : "")
-                    .header("X-User-Name", username)
+                    .header(Constants.AUTH_TOKEN_HEADER, token) // Forward token for verification
+                    .header("X-User-Id", userId != null ? userId : "")
+                    .header("X-User-Name", username != null ? username : "")
                     .header("X-User-Roles", String.join(",", roles))
                     .build();
 
             return chain.filter(exchange.mutate().request(modifiedRequest).build());
 
         } catch (Exception e) {
-            logger.error("Error processing JWT token", e);
+            logger.error("Error processing Keycloak token", e);
             return onUnauthorized(exchange, "Error processing authentication token");
         }
     }

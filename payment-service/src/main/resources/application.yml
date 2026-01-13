@@ -47,3 +47,34 @@ management:
     health:
       show-details: always
 
+---
+# Docker Profile
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/trainticket
+  kafka:
+    bootstrap-servers: kafka:9093
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+
+# ============================================================================
+# KEYCLOAK CONFIGURATION (for token verification)
+# ============================================================================
+# Used by TokenVerificationInterceptor to verify tokens forwarded from gateway
+keycloak:
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+  realm: ${KEYCLOAK_REALM:train-ticket}
+
+# Token verification setting
+# Set to false to trust headers from gateway (for internal network)
+# In production with mTLS/internal network, you can set this to false
+token:
+  verification:
+    enabled: ${TOKEN_VERIFICATION_ENABLED:true}
+

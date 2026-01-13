@@ -27,9 +27,9 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "users", indexes = {
-    @Index(name = "idx_user_username", columnList = "username"),
-    @Index(name = "idx_user_email", columnList = "email"),
-    @Index(name = "idx_user_active", columnList = "active")
+        @Index(name = "idx_user_username", columnList = "username"),
+        @Index(name = "idx_user_email", columnList = "email"),
+        @Index(name = "idx_user_active", columnList = "active")
 })
 @Data
 @Builder
@@ -47,7 +47,7 @@ public class User {
     @Column(unique = true, nullable = false, length = 100)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = true) // Password managed by Keycloak, can be null
     private String password;
 
     @Column(nullable = false, length = 100)
@@ -85,13 +85,13 @@ public class User {
     private Boolean phoneVerified = false;
 
     private String passwordResetToken;
-    
+
     private LocalDateTime passwordResetExpiry;
-    
+
     private String emailVerificationToken;
-    
+
     private LocalDateTime lastLoginAt;
-    
+
     private String lastLoginIp;
 
     @Column(nullable = false, updatable = false)

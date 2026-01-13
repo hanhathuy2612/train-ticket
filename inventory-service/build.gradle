@@ -36,6 +36,14 @@ dependencies {
 	// Redis for distributed locks
 	implementation 'org.redisson:redisson-spring-boot-starter:3.24.3'
 	
+	// JWT for token verification (hybrid security approach)
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+	
+	// WebClient for fetching Keycloak public keys
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 

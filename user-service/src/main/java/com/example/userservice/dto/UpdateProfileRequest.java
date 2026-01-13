@@ -33,4 +33,3 @@ public class UpdateProfileRequest {
     @Pattern(regexp = "^[0-9]{9,12}$", message = "Invalid ID number format")
     private String idNumber;
 }
-

@@ -25,13 +25,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "schedules", 
-    uniqueConstraints = @UniqueConstraint(columnNames = {"train_id", "departureDate"}),
-    indexes = {
-        @Index(name = "idx_schedule_train", columnList = "train_id"),
-        @Index(name = "idx_schedule_date", columnList = "departureDate"),
-        @Index(name = "idx_schedule_status", columnList = "status")
-    })
+@Table(name = "schedules", uniqueConstraints = @UniqueConstraint(columnNames = { "train_id",
+        "departureDate" }), indexes = {
+                @Index(name = "idx_schedule_train", columnList = "train_id"),
+                @Index(name = "idx_schedule_date", columnList = "departureDate"),
+                @Index(name = "idx_schedule_status", columnList = "status")
+        })
 @Data
 @Builder
 @NoArgsConstructor
@@ -112,8 +111,8 @@ public class Schedule {
 
     // Helper methods
     public int getTotalAvailableSeats() {
-        return availableEconomySeats + availableBusinessSeats + 
-               (availableFirstClassSeats != null ? availableFirstClassSeats : 0);
+        return availableEconomySeats + availableBusinessSeats +
+                (availableFirstClassSeats != null ? availableFirstClassSeats : 0);
     }
 
     public boolean hasAvailableSeats(int count, String seatClass) {
@@ -129,4 +128,3 @@ public class Schedule {
         return status == ScheduleStatus.SCHEDULED && getTotalAvailableSeats() > 0;
     }
 }
-

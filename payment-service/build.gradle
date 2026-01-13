@@ -20,6 +20,7 @@ repositories {
 
 ext {
 	set('springCloudVersion', "2025.0.1")
+	set('jsonWebtokenVersion', '0.12.3')
 }
 
 dependencies {
@@ -31,6 +32,14 @@ dependencies {
 
 	// Kafka
 	implementation 'org.springframework.kafka:spring-kafka'
+	
+	// JWT for token verification (hybrid security approach)
+	implementation "io.jsonwebtoken:jjwt-api:${jsonWebtokenVersion}"
+	implementation "io.jsonwebtoken:jjwt-impl:${jsonWebtokenVersion}"
+	implementation "io.jsonwebtoken:jjwt-jackson:${jsonWebtokenVersion}"
+	
+	// WebClient for fetching Keycloak public keys
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 	
 	// PostgreSQL
 	runtimeOnly 'org.postgresql:postgresql'

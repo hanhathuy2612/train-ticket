@@ -101,7 +101,8 @@ Lệnh này sẽ khởi động:
 
 - PostgreSQL (port 5432)
 - Redis (port 6379)
-- RabbitMQ (port 5672, Management UI: http://localhost:15672)
+- Zookeeper (port 2181)
+- Kafka (port 9092)
 
 ### 2. Khởi động Eureka Server
 
@@ -214,7 +215,7 @@ Tất cả requests đều đi qua API Gateway tại `http://localhost:8080`
 
 ### Async Processing
 
-- RabbitMQ cho notifications
+- Kafka cho event-driven messaging
 - Non-blocking operations cho heavy tasks
 
 ## Monitoring
@@ -242,7 +243,7 @@ Các bảng chính:
 - Mỗi service có thể scale độc lập
 - Stateless services, dễ scale ngang
 - Redis cluster mode cho cache scaling
-- RabbitMQ cluster cho message queue scaling
+- Kafka cluster cho message queue scaling với high throughput
 - Database read replicas cho read-heavy operations
 
 ## Security

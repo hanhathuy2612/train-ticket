@@ -16,7 +16,7 @@ docker-compose up --build
 
 Lệnh này sẽ:
 - Build tất cả các Docker images cho các services
-- Khởi động infrastructure (PostgreSQL, Redis, RabbitMQ)
+- Khởi động infrastructure (PostgreSQL, Redis, Zookeeper, Kafka)
 - Khởi động Eureka Server
 - Khởi động tất cả microservices
 - Khởi động API Gateway
@@ -62,10 +62,10 @@ docker-compose restart user-service
 
 Docker Compose sẽ tự động khởi động theo thứ tự:
 
-1. **Infrastructure** (PostgreSQL, Redis, RabbitMQ)
+1. **Infrastructure** (PostgreSQL, Redis, Zookeeper, Kafka)
 2. **Eureka Server** - Service Discovery
 3. **Microservices** (User, Inventory, Payment, Notification)
-4. **Ticket Service** (phụ thuộc vào Inventory Service)
+4. **Ticket Service** (phụ thuộc vào Inventory Service và Kafka)
 5. **API Gateway** (phụ thuộc vào tất cả services)
 
 ## Kiểm tra services
@@ -78,10 +78,10 @@ Docker Compose sẽ tự động khởi động theo thứ tự:
 - URL: http://localhost:8080
 - Health: http://localhost:8080/actuator/health
 
-### RabbitMQ Management
-- URL: http://localhost:15672
-- Username: admin
-- Password: admin
+### Kafka
+- Broker: localhost:9092
+- Zookeeper: localhost:2181
+- Có thể sử dụng Kafka UI tools như Kafka Tool, Kafdrop, hoặc Conduktor để quản lý topics
 
 ### Health Checks
 
@@ -139,7 +139,8 @@ docker-compose up
 Tất cả services chạy trong cùng một Docker network (`train-ticket-network`) và có thể giao tiếp với nhau qua service names:
 - `postgres` - PostgreSQL database
 - `redis` - Redis cache
-- `rabbitmq` - RabbitMQ message broker
+- `zookeeper` - Zookeeper for Kafka
+- `kafka` - Kafka message broker
 - `eureka-server` - Eureka Server
 - `user-service`, `ticket-service`, etc. - Microservices
 
@@ -149,7 +150,7 @@ Các services sử dụng environment variables để cấu hình:
 - `EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE` - Địa chỉ Eureka Server
 - `SPRING_DATASOURCE_URL` - Database connection string
 - `SPRING_DATA_REDIS_HOST` - Redis host
-- `SPRING_RABBITMQ_HOST` - RabbitMQ host
+- `SPRING_KAFKA_BOOTSTRAP_SERVERS` - Kafka bootstrap servers
 
 Các giá trị này được tự động set trong `docker-compose.yml` để sử dụng service names thay vì localhost.
 
