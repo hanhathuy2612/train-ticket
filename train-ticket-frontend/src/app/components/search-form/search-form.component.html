@@ -1,0 +1,87 @@
+<form [formGroup]="searchForm" (ngSubmit)="onSubmit()" class="search-form">
+  <div class="form-row">
+    <div class="form-group">
+      <label for="origin">Điểm đi</label>
+      <input
+        type="text"
+        id="origin"
+        formControlName="origin"
+        placeholder="Nhập điểm đi"
+        class="form-control"
+        [class.error]="origin?.invalid && origin?.touched"
+      />
+      @if (origin?.invalid && origin?.touched) {
+        <span class="error-message">Vui lòng nhập điểm đi</span>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="destination">Điểm đến</label>
+      <input
+        type="text"
+        id="destination"
+        formControlName="destination"
+        placeholder="Nhập điểm đến"
+        class="form-control"
+        [class.error]="destination?.invalid && destination?.touched"
+      />
+      @if (destination?.invalid && destination?.touched) {
+        <span class="error-message">Vui lòng nhập điểm đến</span>
+      }
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="departureDate">Ngày đi</label>
+      <input
+        type="date"
+        id="departureDate"
+        formControlName="departureDate"
+        [min]="today"
+        class="form-control"
+        [class.error]="departureDate?.invalid && departureDate?.touched"
+      />
+      @if (departureDate?.invalid && departureDate?.touched) {
+        <span class="error-message">Vui lòng chọn ngày đi</span>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="passengers">Số hành khách</label>
+      <input
+        type="number"
+        id="passengers"
+        formControlName="passengers"
+        min="1"
+        max="10"
+        class="form-control"
+        [class.error]="passengers?.invalid && passengers?.touched"
+      />
+      @if (passengers?.invalid && passengers?.touched) {
+        <span class="error-message">Số hành khách từ 1 đến 10</span>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="seatClass">Hạng ghế</label>
+      <select id="seatClass" formControlName="seatClass" class="form-control">
+        <option value="ECONOMY">Phổ thông</option>
+        <option value="BUSINESS">Thương gia</option>
+        <option value="FIRST">Hạng nhất</option>
+      </select>
+    </div>
+  </div>
+
+  <button
+    type="submit"
+    class="btn-search"
+    [disabled]="searchForm.invalid || isLoading()"
+  >
+    @if (isLoading()) {
+      <span>Đang tìm...</span>
+    } @else {
+      <span>Tìm kiếm</span>
+    }
+  </button>
+</form>

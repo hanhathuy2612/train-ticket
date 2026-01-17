@@ -1,0 +1,41 @@
+<div class="home-container">
+  <header class="header">
+    <h1>Đặt Vé Tàu</h1>
+    <p class="subtitle">Tìm và đặt vé tàu nhanh chóng, dễ dàng</p>
+  </header>
+
+  <main class="main-content">
+    <app-search-form
+      (searchSubmitted)="onSearch($event)"
+    />
+
+    @if (bookingSuccess()) {
+      <div class="success-message">
+        <p>✓ Đặt vé thành công!</p>
+      </div>
+    }
+
+    @if (errorMessage()) {
+      <div class="error-message">
+        <p>{{ errorMessage() }}</p>
+      </div>
+    }
+
+    @if (getSelectedSchedule()) {
+      <app-booking-form
+        [schedule]="getSelectedSchedule()!"
+        [isOpen]="isBookingModalOpen()"
+        [seatClass]="getSeatClass()"
+        [numberOfPassengers]="getNumberOfPassengers()"
+        (closed)="onCloseBooking()"
+        (bookingSuccess)="onBookingSuccess()"
+      />
+    }
+
+    <app-schedule-list
+      [schedules]="schedules()"
+      [isLoading]="isLoading()"
+      (selectedSchedule)="onSelectSchedule($event)"
+    />
+  </main>
+</div>

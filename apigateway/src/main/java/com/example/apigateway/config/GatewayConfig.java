@@ -3,6 +3,7 @@ package com.example.apigateway.config;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,8 +32,10 @@ public class GatewayConfig {
     /**
      * Rate limiter key resolver based on user ID from JWT token
      * Falls back to IP address if user ID is not available
+     * Marked as @Primary to resolve ambiguity when multiple KeyResolver beans exist
      */
     @Bean
+    @Primary
     public KeyResolver userKeyResolver() {
         return exchange -> {
             String userId = exchange.getRequest().getHeaders().getFirst(Constants.USER_ID_HEADER);

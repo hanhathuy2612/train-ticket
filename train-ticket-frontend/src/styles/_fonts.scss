@@ -1,0 +1,26 @@
+$font-sizes: (
+    xs: 12px,
+    sm: 14px,
+    md: 16px,
+    lg: 18px,
+    xl: 20px
+);
+
+@each $label, $size in $font-sizes {
+    .font-#{$label} {
+        font-size: $size;
+    }
+}
+
+$font-weights: (
+    normal: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700
+);
+
+@each $label, $weight in $font-weights {
+    .font-weight-#{$label} {
+        font-weight: $weight;
+    }
+}

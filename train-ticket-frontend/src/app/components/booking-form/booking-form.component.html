@@ -1,0 +1,128 @@
+@if (isOpen()) {
+  <div class="booking-overlay" (click)="close()">
+    <div class="booking-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Đặt vé</h2>
+        <button class="close-btn" (click)="close()" type="button">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="schedule-summary">
+          <h3>{{ schedule().train.trainName }}</h3>
+          <p class="train-number">{{ schedule().train.trainNumber }}</p>
+          <div class="route-info">
+            <div class="route-point">
+              <span class="time">{{ formatTime(schedule().train.departureTime) }}</span>
+              <span class="station">{{ schedule().train.origin }}</span>
+            </div>
+            <span class="arrow">→</span>
+            <div class="route-point">
+              <span class="time">{{ formatTime(schedule().train.arrivalTime) }}</span>
+              <span class="station">{{ schedule().train.destination }}</span>
+            </div>
+          </div>
+          <p class="date">{{ formatDate(schedule().departureDate) }}</p>
+          <p class="seat-class">Hạng ghế: 
+            @if (seatClass() === 'ECONOMY') {
+              <span>Phổ thông</span>
+            } @else if (seatClass() === 'BUSINESS') {
+              <span>Thương gia</span>
+            } @else {
+              <span>Hạng nhất</span>
+            }
+          </p>
+        </div>
+
+        <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()" class="booking-form">
+          <div class="form-group">
+            <label for="numberOfSeats">Số lượng ghế</label>
+            <input
+              type="number"
+              id="numberOfSeats"
+              formControlName="numberOfSeats"
+              min="1"
+              [max]="numberOfPassengers()"
+              class="form-control"
+              [class.error]="bookingForm.get('numberOfSeats')?.invalid && bookingForm.get('numberOfSeats')?.touched"
+            />
+            @if (bookingForm.get('numberOfSeats')?.invalid && bookingForm.get('numberOfSeats')?.touched) {
+              <span class="error-message">Vui lòng nhập số lượng ghế hợp lệ</span>
+            }
+          </div>
+
+          <div class="passengers-section">
+            <h4>Thông tin hành khách</h4>
+            <div formArrayName="passengers">
+              @for (passenger of passengersArray.controls; track $index) {
+                <div [formGroupName]="$index" class="passenger-form">
+                  <h5>Hành khách {{ $index + 1 }}</h5>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Họ và tên *</label>
+                      <input
+                        type="text"
+                        formControlName="name"
+                        placeholder="Nhập họ và tên"
+                        class="form-control"
+                        [class.error]="getPassengerForm($index).get('name')?.invalid && getPassengerForm($index).get('name')?.touched"
+                      />
+                      @if (getPassengerForm($index).get('name')?.invalid && getPassengerForm($index).get('name')?.touched) {
+                        <span class="error-message">Vui lòng nhập họ và tên</span>
+                      }
+                    </div>
+
+                    <div class="form-group">
+                      <label>Số CMND/CCCD</label>
+                      <input
+                        type="text"
+                        formControlName="idNumber"
+                        placeholder="Nhập số CMND/CCCD"
+                        class="form-control"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Số điện thoại</label>
+                    <input
+                      type="tel"
+                      formControlName="phoneNumber"
+                      placeholder="Nhập số điện thoại"
+                      class="form-control"
+                      [class.error]="getPassengerForm($index).get('phoneNumber')?.invalid && getPassengerForm($index).get('phoneNumber')?.touched"
+                    />
+                    @if (getPassengerForm($index).get('phoneNumber')?.invalid && getPassengerForm($index).get('phoneNumber')?.touched) {
+                      <span class="error-message">Số điện thoại không hợp lệ</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="total-price">
+            <span class="label">Tổng tiền:</span>
+            <span class="amount">{{ totalPrice() | number }} đ</span>
+          </div>
+
+          @if (errorMessage()) {
+            <div class="error-alert">
+              {{ errorMessage() }}
+            </div>
+          }
+
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" (click)="close()">Hủy</button>
+            <button type="submit" class="btn-submit" [disabled]="bookingForm.invalid || isLoading()">
+              @if (isLoading()) {
+                <span>Đang xử lý...</span>
+              } @else {
+                <span>Xác nhận đặt vé</span>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}

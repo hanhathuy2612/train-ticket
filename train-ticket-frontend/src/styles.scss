@@ -1,1 +1,13 @@
 /* You can add global styles to this file, and also import other style files */
+@use 'styles/theme' as *;
+@use 'styles/fonts' as *;
+
+// ============================================================================
+// GLOBAL STYLES
+// ============================================================================
+// Apply base font family globally
+body {
+    font-family: $font-family-base;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}

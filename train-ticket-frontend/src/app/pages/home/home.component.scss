@@ -1,0 +1,75 @@
+@use '../../../styles/theme' as *;
+
+.home-container {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, $color-gray-bg, $color-gray-bg-dark);
+}
+
+.header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  color: $color-white;
+  padding: $spacing-2xl $spacing-xl;
+  text-align: center;
+  box-shadow: $shadow-md;
+
+  h1 {
+    margin: 0 0 $spacing-sm 0;
+    font-size: $font-size-6xl;
+    font-weight: $font-weight-bold;
+
+    @media (max-width: 768px) {
+      font-size: $font-size-5xl;
+    }
+  }
+
+  .subtitle {
+    margin: 0;
+    font-size: $font-size-2xl;
+    opacity: 0.9;
+
+    @media (max-width: 768px) {
+      font-size: $font-size-lg;
+    }
+  }
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: $spacing-xl;
+
+  @media (max-width: 768px) {
+    padding: $spacing-md;
+  }
+}
+
+.success-message {
+  background: $color-success-light;
+  color: $color-success-text;
+  padding: $spacing-md;
+  border-radius: $border-radius-sm;
+  margin-bottom: $spacing-lg;
+  border: 1px solid $color-success-border;
+  text-align: center;
+
+  p {
+    margin: 0;
+    font-weight: $font-weight-medium;
+    font-size: $font-size-xl;
+  }
+}
+
+.error-message {
+  background: $color-error-light;
+  color: $color-error-text;
+  padding: $spacing-md;
+  border-radius: $border-radius-sm;
+  margin-bottom: $spacing-lg;
+  border: 1px solid $color-error-border;
+  text-align: center;
+
+  p {
+    margin: 0;
+    font-weight: $font-weight-medium;
+  }
+}

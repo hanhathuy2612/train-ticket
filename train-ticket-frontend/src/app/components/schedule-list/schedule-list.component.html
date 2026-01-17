@@ -1,0 +1,65 @@
+@if (isLoading()) {
+  <div class="loading">
+    <p>Đang tìm kiếm chuyến tàu...</p>
+  </div>
+} @else if (schedules().length === 0) {
+  <div class="no-results">
+    <p>Không tìm thấy chuyến tàu nào phù hợp.</p>
+  </div>
+} @else {
+  <div class="schedule-list">
+    @for (schedule of schedules(); track schedule.id) {
+      <div class="schedule-card">
+        <div class="schedule-header">
+          <div class="train-info">
+            <h3>{{ schedule.train.trainName }}</h3>
+            <span class="train-number">{{ schedule.train.trainNumber }}</span>
+          </div>
+          <div class="date-info">
+            <span class="date">{{ formatDate(schedule.departureDate) }}</span>
+          </div>
+        </div>
+
+        <div class="schedule-body">
+          <div class="route">
+            <div class="route-point origin">
+              <span class="time">{{ formatTime(schedule.train.departureTime) }}</span>
+              <span class="station">{{ schedule.train.origin }}</span>
+            </div>
+            <div class="route-line">
+              <div class="line"></div>
+            </div>
+            <div class="route-point destination">
+              <span class="time">{{ formatTime(schedule.train.arrivalTime) }}</span>
+              <span class="station">{{ schedule.train.destination }}</span>
+            </div>
+          </div>
+
+          <div class="pricing">
+            <div class="price-item">
+              <span class="class-label">Phổ thông</span>
+              <span class="price">{{ getPrice(schedule, 'ECONOMY') | number }} đ</span>
+              <span class="available">Còn {{ getAvailableSeats(schedule, 'ECONOMY') }} ghế</span>
+            </div>
+            <div class="price-item">
+              <span class="class-label">Thương gia</span>
+              <span class="price">{{ getPrice(schedule, 'BUSINESS') | number }} đ</span>
+              <span class="available">Còn {{ getAvailableSeats(schedule, 'BUSINESS') }} ghế</span>
+            </div>
+            <div class="price-item">
+              <span class="class-label">Hạng nhất</span>
+              <span class="price">{{ getPrice(schedule, 'FIRST') | number }} đ</span>
+              <span class="available">Còn {{ getAvailableSeats(schedule, 'FIRST') }} ghế</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="schedule-footer">
+          <button class="btn-book" (click)="onSelectSchedule(schedule)">
+            Đặt vé
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+}
