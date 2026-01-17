@@ -1,6 +1,6 @@
 package com.example.inventoryservice.dto;
 
-import java.time.LocalDate;
+import java.time.Instant;
 
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
@@ -21,7 +21,7 @@ public class CreateScheduleRequest {
 
     @NotNull(message = "Departure date is required")
     @Future(message = "Departure date must be in the future")
-    private LocalDate departureDate;
+    private Instant departureDate;
 
     @Size(max = 500, message = "Notes must not exceed 500 characters")
     private String notes;

@@ -1,2 +1,4 @@
 rootProject.name = 'inventory-service'
 
+// Include shared module as a project dependency
+includeBuild('../shared')

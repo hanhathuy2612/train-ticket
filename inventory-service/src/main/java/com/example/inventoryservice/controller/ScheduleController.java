@@ -1,6 +1,8 @@
 package com.example.inventoryservice.controller;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -54,7 +56,9 @@ public class ScheduleController {
             @PathVariable Long trainId,
             @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         logger.debug("Get schedule for train {} on {}", trainId, date);
-        ScheduleResponse response = scheduleService.getScheduleByTrainAndDate(trainId, date);
+        // Convert LocalDate to Instant at start of day
+        Instant instant = date.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        ScheduleResponse response = scheduleService.getScheduleByTrainAndDate(trainId, instant);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -68,7 +72,9 @@ public class ScheduleController {
         size = Math.min(size, MAX_PAGE_SIZE);
         Pageable pageable = PageRequest.of(page, size);
         
-        Page<ScheduleResponse> schedules = scheduleService.getSchedulesByDate(date, pageable);
+        // Convert LocalDate to Instant at start of day
+        Instant instant = date.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Page<ScheduleResponse> schedules = scheduleService.getSchedulesByDate(instant, pageable);
         return ResponseEntity.ok(ApiResponse.success(schedules));
     }
 
@@ -105,7 +111,10 @@ public class ScheduleController {
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         logger.info("Create bulk schedules for train {} from {} to {}", trainId, startDate, endDate);
-        List<ScheduleResponse> schedules = scheduleService.createBulkSchedules(trainId, startDate, endDate);
+        // Convert LocalDate to Instant at start of day
+        Instant startInstant = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Instant endInstant = endDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        List<ScheduleResponse> schedules = scheduleService.createBulkSchedules(trainId, startInstant, endInstant);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created(schedules));
     }

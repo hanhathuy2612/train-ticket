@@ -2,6 +2,7 @@ import { Component, EventEmitter, inject, output, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SearchTrainRequest } from '../../models/search-train-request.interface';
+import dayjs from 'dayjs';
 
 @Component({
   selector: 'app-search-form',
@@ -33,8 +34,8 @@ export class SearchFormComponent {
       const formValue = this.searchForm.value;
       const request: SearchTrainRequest = {
         origin: formValue.origin.trim(),
-        destination: formValue.destination.trim(),
-        departureDate: formValue.departureDate,
+        destination: formValue.destination,
+        departureDate: dayjs(formValue.departureDate),
         passengers: formValue.passengers || 1,
         seatClass: formValue.seatClass || 'ECONOMY'
       };

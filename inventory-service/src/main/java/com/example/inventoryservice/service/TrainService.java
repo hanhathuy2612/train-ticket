@@ -18,11 +18,11 @@ import com.example.inventoryservice.entity.Route;
 import com.example.inventoryservice.entity.Seat;
 import com.example.inventoryservice.entity.Train;
 import com.example.inventoryservice.entity.Train.TrainType;
-import com.example.inventoryservice.exception.RouteNotFoundException;
-import com.example.inventoryservice.exception.TrainNotFoundException;
+import com.example.inventoryservice.exception.InventoryErrorCode;
 import com.example.inventoryservice.repository.RouteRepository;
 import com.example.inventoryservice.repository.SeatRepository;
 import com.example.inventoryservice.repository.TrainRepository;
+import com.example.shared.exception.BusinessException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -41,14 +41,14 @@ public class TrainService {
     public TrainResponse getTrainById(Long id) {
         logger.debug("Fetching train by id: {}", id);
         Train train = trainRepository.findById(id)
-                .orElseThrow(() -> new TrainNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.TRAIN_NOT_FOUND));
         return TrainResponse.from(train);
     }
 
     public TrainResponse getTrainByNumber(String trainNumber) {
         logger.debug("Fetching train by number: {}", trainNumber);
         Train train = trainRepository.findByTrainNumber(trainNumber)
-                .orElseThrow(() -> new TrainNotFoundException(trainNumber));
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.TRAIN_NOT_FOUND));
         return TrainResponse.from(train);
     }
 
@@ -87,7 +87,7 @@ public class TrainService {
         }
 
         Route route = routeRepository.findById(request.getRouteId())
-                .orElseThrow(() -> new RouteNotFoundException(request.getRouteId()));
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.ROUTE_NOT_FOUND));
 
         Train train = Train.builder()
                 .trainNumber(request.getTrainNumber())
@@ -120,10 +120,10 @@ public class TrainService {
         logger.info("Updating train: {}", id);
 
         Train train = trainRepository.findById(id)
-                .orElseThrow(() -> new TrainNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.TRAIN_NOT_FOUND));
 
         Route route = routeRepository.findById(request.getRouteId())
-                .orElseThrow(() -> new RouteNotFoundException(request.getRouteId()));
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.ROUTE_NOT_FOUND));
 
         train.setTrainName(request.getTrainName());
         train.setRoute(route);
@@ -150,7 +150,7 @@ public class TrainService {
         logger.info("Deleting train: {}", id);
 
         Train train = trainRepository.findById(id)
-                .orElseThrow(() -> new TrainNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.TRAIN_NOT_FOUND));
 
         train.setActive(false);
         trainRepository.save(train);

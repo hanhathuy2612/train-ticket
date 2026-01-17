@@ -19,7 +19,7 @@ import com.example.inventoryservice.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/inventory")
+@RequestMapping("/")
 @RequiredArgsConstructor
 public class InventoryController {
 

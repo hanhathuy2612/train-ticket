@@ -1,9 +1,7 @@
 package com.example.apigateway.filter;
 
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.apigateway.config.Constants;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -11,21 +9,18 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-
-import com.example.apigateway.config.Constants;
-
 import reactor.core.publisher.Mono;
+
+import java.util.UUID;
 
 /**
  * Global logging filter for API Gateway
- * 
  * Logs all incoming requests and outgoing responses with timing information
  * Adds correlation ID for request tracing across microservices
  */
+@Slf4j
 @Component
 public class LoggingFilter implements GlobalFilter, Ordered {
-
-    private static final Logger logger = LoggerFactory.getLogger(LoggingFilter.class);
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -49,7 +44,7 @@ public class LoggingFilter implements GlobalFilter, Ordered {
         String userId = request.getHeaders().getFirst(Constants.USER_ID_HEADER);
 
         // Log incoming request
-        logger.info("Incoming request: {} {} | Client: {} | User: {} | Correlation: {} | User-Agent: {}",
+        log.info("Incoming request: {} {} | Client: {} | User: {} | Correlation: {} | User-Agent: {}",
                 method, path, clientIp, userId != null ? userId : "anonymous", correlationId, userAgent);
 
         // Add correlation ID to request headers
@@ -72,11 +67,11 @@ public class LoggingFilter implements GlobalFilter, Ordered {
                             : 0;
 
                     if (statusCode >= 400) {
-                        logger.warn(
+                        log.warn(
                                 "Response: {} {} | Status: {} | Duration: {}ms | Correlation: {} | Client: {} | User: {} | User-Agent: {}",
                                 method, path, statusCode, duration, finalCorrelationId, clientIp, userId, userAgent);
                     } else {
-                        logger.info(
+                        log.info(
                                 "Response: {} {} | Status: {} | Duration: {}ms | Correlation: {} | Client: {} | User: {} | User-Agent: {}",
                                 method, path, statusCode, duration, finalCorrelationId, clientIp, userId, userAgent);
                     }

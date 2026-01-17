@@ -1,5 +1,6 @@
 package com.example.inventoryservice.dto;
 
+import java.time.Instant;
 import java.util.List;
 
 import jakarta.validation.constraints.NotNull;
@@ -23,7 +24,7 @@ public class ReserveSeatRequest {
     private Integer numberOfSeats;
 
     @NotNull(message = "Departure date is required")
-    private String departureDate;
+    private Instant departureDate;
 
     private String seatClass; // ECONOMY, BUSINESS, FIRST
 

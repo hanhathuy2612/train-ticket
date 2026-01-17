@@ -1,8 +1,12 @@
 package com.example.inventoryservice.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,11 +22,11 @@ import com.example.inventoryservice.dto.SearchTrainRequest;
 import com.example.inventoryservice.entity.Inventory;
 import com.example.inventoryservice.entity.Schedule;
 import com.example.inventoryservice.entity.Train;
-import com.example.inventoryservice.exception.ScheduleNotFoundException;
-import com.example.inventoryservice.exception.TrainNotFoundException;
+import com.example.inventoryservice.exception.InventoryErrorCode;
 import com.example.inventoryservice.repository.InventoryRepository;
 import com.example.inventoryservice.repository.ScheduleRepository;
 import com.example.inventoryservice.repository.TrainRepository;
+import com.example.shared.exception.BusinessException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -40,20 +44,23 @@ public class ScheduleService {
         public ScheduleResponse getScheduleById(Long id) {
                 logger.debug("Fetching schedule by id: {}", id);
                 Schedule schedule = scheduleRepository.findById(id)
-                                .orElseThrow(() -> new ScheduleNotFoundException(id));
+                                .orElseThrow(() -> new BusinessException(InventoryErrorCode.SCHEDULE_NOT_FOUND));
                 return ScheduleResponse.from(schedule);
         }
 
-        public ScheduleResponse getScheduleByTrainAndDate(Long trainId, LocalDate date) {
+        public ScheduleResponse getScheduleByTrainAndDate(Long trainId, Instant date) {
                 logger.debug("Fetching schedule for train {} on {}", trainId, date);
                 Schedule schedule = scheduleRepository.findByTrainIdAndDepartureDate(trainId, date)
-                                .orElseThrow(() -> new ScheduleNotFoundException(trainId, date));
+                                .orElseThrow(() -> new BusinessException(InventoryErrorCode.SCHEDULE_NOT_FOUND));
                 return ScheduleResponse.from(schedule);
         }
 
-        public Page<ScheduleResponse> getSchedulesByDate(LocalDate date, Pageable pageable) {
+        public Page<ScheduleResponse> getSchedulesByDate(Instant date, Pageable pageable) {
                 logger.debug("Fetching schedules for date: {}", date);
-                return scheduleRepository.findByDepartureDate(date, pageable)
+                LocalDate localDate = date.atZone(ZoneId.systemDefault()).toLocalDate();
+                Instant startOfDay = localDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+                Instant endOfDay = localDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+                return scheduleRepository.findByDepartureDate(startOfDay, endOfDay, pageable)
                                 .map(ScheduleResponse::from);
         }
 
@@ -61,18 +68,24 @@ public class ScheduleService {
                 logger.debug("Searching schedules from {} to {} on {}",
                                 request.getOrigin(), request.getDestination(), request.getDepartureDate());
 
+                LocalDate localDate = request.getDepartureDate().atZone(ZoneId.systemDefault()).toLocalDate();
+                Instant startOfDay = localDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+                Instant endOfDay = localDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+
                 List<Schedule> schedules;
                 if (request.getPassengers() > 1) {
                         schedules = scheduleRepository.findAvailableSchedulesWithSeats(
                                         request.getOrigin(),
                                         request.getDestination(),
-                                        request.getDepartureDate(),
+                                        startOfDay,
+                                        endOfDay,
                                         request.getPassengers());
                 } else {
                         schedules = scheduleRepository.findAvailableSchedules(
                                         request.getOrigin(),
                                         request.getDestination(),
-                                        request.getDepartureDate());
+                                        startOfDay,
+                                        endOfDay);
                 }
 
                 return schedules.stream()
@@ -84,10 +97,15 @@ public class ScheduleService {
                 logger.debug("Getting availability from {} to {} on {}",
                                 request.getOrigin(), request.getDestination(), request.getDepartureDate());
 
+                LocalDate localDate = request.getDepartureDate().atZone(ZoneId.systemDefault()).toLocalDate();
+                Instant startOfDay = localDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
+                Instant endOfDay = localDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+
                 List<Schedule> schedules = scheduleRepository.findAvailableSchedules(
                                 request.getOrigin(),
                                 request.getDestination(),
-                                request.getDepartureDate());
+                                startOfDay,
+                                endOfDay);
 
                 return schedules.stream()
                                 .map(this::toAvailabilityResponse)
@@ -104,7 +122,7 @@ public class ScheduleService {
                 }
 
                 Train train = trainRepository.findById(request.getTrainId())
-                                .orElseThrow(() -> new TrainNotFoundException(request.getTrainId()));
+                                .orElseThrow(() -> new BusinessException(InventoryErrorCode.TRAIN_NOT_FOUND));
 
                 Schedule schedule = Schedule.builder()
                                 .train(train)
@@ -136,13 +154,16 @@ public class ScheduleService {
         }
 
         @Transactional
-        public List<ScheduleResponse> createBulkSchedules(Long trainId, LocalDate startDate, LocalDate endDate) {
+        public List<ScheduleResponse> createBulkSchedules(Long trainId, Instant startDate, Instant endDate) {
                 logger.info("Creating bulk schedules for train {} from {} to {}", trainId, startDate, endDate);
 
-                Train train = trainRepository.findById(trainId)
-                                .orElseThrow(() -> new TrainNotFoundException(trainId));
+                LocalDate startLocalDate = startDate.atZone(ZoneId.systemDefault()).toLocalDate();
+                LocalDate endLocalDate = endDate.atZone(ZoneId.systemDefault()).toLocalDate();
+                long daysBetween = ChronoUnit.DAYS.between(startLocalDate, endLocalDate) + 1;
 
-                return startDate.datesUntil(endDate.plusDays(1))
+                return IntStream.range(0, (int) daysBetween)
+                                .mapToObj(startLocalDate::plusDays)
+                                .map(localDate -> localDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
                                 .filter(date -> !scheduleRepository.existsByTrainIdAndDepartureDate(trainId, date))
                                 .map(date -> {
                                         CreateScheduleRequest request = CreateScheduleRequest.builder()
@@ -159,7 +180,7 @@ public class ScheduleService {
                 logger.info("Cancelling schedule: {}", id);
 
                 Schedule schedule = scheduleRepository.findById(id)
-                                .orElseThrow(() -> new ScheduleNotFoundException(id));
+                                .orElseThrow(() -> new BusinessException(InventoryErrorCode.SCHEDULE_NOT_FOUND));
 
                 schedule.setStatus(Schedule.ScheduleStatus.CANCELLED);
                 schedule.setNotes(reason);

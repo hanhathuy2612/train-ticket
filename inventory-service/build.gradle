@@ -16,6 +16,7 @@ java {
 
 repositories {
 	mavenCentral()
+	mavenLocal() // For shared module from local Maven repository
 }
 
 ext {
@@ -23,6 +24,9 @@ ext {
 }
 
 dependencies {
+	// Shared module - common exceptions and utilities
+	implementation 'com.train.ticket:shared:0.0.1-SNAPSHOT'
+	
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'

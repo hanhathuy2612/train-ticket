@@ -26,7 +26,6 @@ import com.example.inventoryservice.dto.CreateTrainRequest;
 import com.example.inventoryservice.dto.TrainResponse;
 import com.example.inventoryservice.service.TrainService;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController

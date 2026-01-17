@@ -21,99 +21,88 @@ spring:
       host: localhost
       port: 6379
       timeout: 2000ms # Connection timeout
-
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/auth/realms/train-ticket
+          jwk-set-uri: http://localhost:8080/auth/realms/train-ticket/protocol/openid-connect/certs
   # Spring Cloud Gateway configuration
   cloud:
     gateway:
-      # ========================================================================
-      # HTTP CLIENT TIMEOUT CONFIGURATION
-      # ========================================================================
-      # Controls how long the gateway waits for connections and responses
-      # from downstream services
-      httpclient:
-        connect-timeout: 5000 # Max time to establish connection (5 seconds)
-        response-timeout: 30s # Max time to wait for response (30 seconds)
+      server:
+        webflux:
+          routes:
+            # Route: User Service
+            # Matches: /api/users/** -> forwards to user-service
+            - id: user-service
+              uri: lb://user-service # lb:// = load balance via Eureka service discovery
+              predicates:
+                - Path=/api/users/** # Match all paths starting with /api/users/
+              filters:
+                - StripPrefix=1 # Remove /api prefix before forwarding
+                - name: CircuitBreaker # Enable circuit breaker for fault tolerance
+                  args:
+                    name: user-service-circuit-breaker
+                    fallbackUri: forward:/fallback/user-service # Fallback when service is down
 
-      # ========================================================================
-      # ROUTE CONFIGURATION
-      # ========================================================================
-      # Defines how requests are routed to backend microservices
-      # Each route has:
-      #   - id: Unique identifier
-      #   - uri: Target service (lb:// = load-balanced via Eureka)
-      #   - predicates: Conditions to match this route
-      #   - filters: Transformations applied to requests/responses
-      routes:
-        # Route: User Service
-        # Matches: /api/users/** -> forwards to user-service
-        - id: user-service
-          uri: lb://user-service # lb:// = load balance via Eureka service discovery
-          predicates:
-            - Path=/api/users/** # Match all paths starting with /api/users/
-          filters:
-            - StripPrefix=1 # Remove /api prefix before forwarding
-            - name: CircuitBreaker # Enable circuit breaker for fault tolerance
-              args:
-                name: user-service-circuit-breaker
-                fallbackUri: forward:/fallback/user-service # Fallback when service is down
+            # Route: Ticket Service
+            # Matches: /api/tickets/** -> forwards to ticket-service
+            - id: ticket-service
+              uri: lb://ticket-service
+              predicates:
+                - Path=/api/tickets/**
+              filters:
+                - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    name: ticket-service-circuit-breaker
+                    fallbackUri: forward:/fallback/ticket-service
 
-        # Route: Ticket Service
-        # Matches: /api/tickets/** -> forwards to ticket-service
-        - id: ticket-service
-          uri: lb://ticket-service
-          predicates:
-            - Path=/api/tickets/**
-          filters:
-            - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: ticket-service-circuit-breaker
-                fallbackUri: forward:/fallback/ticket-service
+            # Route: Inventory Service
+            # Matches: /api/inventory/** -> forwards to inventory-service
+            - id: inventory-service
+              uri: lb://inventory-service
+              predicates:
+                - Path=/api/inventory/**
+              filters:
+                - StripPrefix=2
+                - name: CircuitBreaker
+                  args:
+                    name: inventory-service-circuit-breaker
+                    fallbackUri: forward:/fallback/inventory-service
 
-        # Route: Inventory Service
-        # Matches: /api/inventory/** -> forwards to inventory-service
-        - id: inventory-service
-          uri: lb://inventory-service
-          predicates:
-            - Path=/api/inventory/**
-          filters:
-            - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: inventory-service-circuit-breaker
-                fallbackUri: forward:/fallback/inventory-service
+            # Route: Payment Service
+            # Matches: /api/payments/** -> forwards to payment-service
+            - id: payment-service
+              uri: lb://payment-service
+              predicates:
+                - Path=/api/payments/**
+              filters:
+                - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    name: payment-service-circuit-breaker
+                    fallbackUri: forward:/fallback/payment-service
 
-        # Route: Payment Service
-        # Matches: /api/payments/** -> forwards to payment-service
-        - id: payment-service
-          uri: lb://payment-service
-          predicates:
-            - Path=/api/payments/**
-          filters:
-            - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: payment-service-circuit-breaker
-                fallbackUri: forward:/fallback/payment-service
-
-        # Route: Notification Service
-        # Matches: /api/notifications/** -> forwards to notification-service
-        - id: notification-service
-          uri: lb://notification-service
-          predicates:
-            - Path=/api/notifications/**
-          filters:
-            - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: notification-service-circuit-breaker
-                fallbackUri: forward:/fallback/notification-service
+            # Route: Notification Service
+            # Matches: /api/notifications/** -> forwards to notification-service
+            - id: notification-service
+              uri: lb://notification-service
+              predicates:
+                - Path=/api/notifications/**
+              filters:
+                - StripPrefix=1
+                - name: CircuitBreaker
+                  args:
+                    name: notification-service-circuit-breaker
+                    fallbackUri: forward:/fallback/notification-service
 
 # ============================================================================
 # SERVER CONFIGURATION
 # ============================================================================
 server:
-  port: 8080 # Gateway listens on port 8080
+  port: 8189 # Gateway listens on port 8080
 
 # ============================================================================
 # EUREKA SERVICE DISCOVERY CONFIGURATION
@@ -195,6 +184,24 @@ management:
       show-details: always # Always show detailed health information
 
 # ============================================================================
+# OPENAPI/SWAGGER CONFIGURATION
+# ============================================================================
+# API Documentation and debugging tool
+# Access Swagger UI at: http://localhost:8080/swagger-ui.html
+# Access API docs at: http://localhost:8080/v3/api-docs
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    config-url: /v3/api-docs/swagger-config
+    # Add CORS configuration for Swagger UI
+    try-it-out-enabled: true
+    filter: true
+
+# ============================================================================
 # KEYCLOAK CONFIGURATION
 # ============================================================================
 # Keycloak is used for authentication and authorization
@@ -202,19 +209,8 @@ management:
 keycloak:
   # Keycloak server URL (e.g., http://localhost:8080 or https://keycloak.example.com)
   server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
-
   # Realm name configured in Keycloak
   realm: ${KEYCLOAK_REALM:train-ticket}
-
   # Client ID configured in Keycloak realm
   # This should be a public client or confidential client with appropriate settings
   client-id: ${KEYCLOAK_CLIENT_ID:train-ticket-gateway}
-
-# ============================================================================
-# JWT CONFIGURATION
-# ============================================================================
-# JWT secret key for token validation (used by JwtUtil)
-# Note: Gateway primarily uses KeycloakTokenValidator, but JwtUtil is still available
-# In production, use a strong secret key (at least 256 bits / 32 bytes)
-jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-for-jwt-token-validation-minimum-32-characters-long}

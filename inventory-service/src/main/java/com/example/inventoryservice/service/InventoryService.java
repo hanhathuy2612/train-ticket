@@ -1,38 +1,35 @@
 package com.example.inventoryservice.service;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.example.inventoryservice.dto.AvailabilityResponse;
 import com.example.inventoryservice.dto.ReserveSeatRequest;
 import com.example.inventoryservice.entity.Inventory;
 import com.example.inventoryservice.entity.Schedule;
 import com.example.inventoryservice.entity.Train;
-import com.example.inventoryservice.exception.InsufficientSeatsException;
-import com.example.inventoryservice.exception.ScheduleNotFoundException;
+import com.example.inventoryservice.exception.InventoryErrorCode;
 import com.example.inventoryservice.repository.InventoryRepository;
 import com.example.inventoryservice.repository.ScheduleRepository;
-
+import com.example.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class InventoryService {
-
-    private static final Logger logger = LoggerFactory.getLogger(InventoryService.class);
-
     private static final String LOCK_PREFIX = "inventory:lock:";
     private static final String CACHE_PREFIX = "inventory:";
     private static final int LOCK_WAIT_TIME = 5;
@@ -46,13 +43,13 @@ public class InventoryService {
 
     @Cacheable(value = "inventory", key = "#trainId + ':' + #departureDate")
     public AvailabilityResponse checkAvailability(Long trainId, String departureDate) {
-        logger.debug("Checking availability for train {} on {}", trainId, departureDate);
+        log.debug("Checking availability for train {} on {}", trainId, departureDate);
 
-        LocalDate date = parseDate(departureDate);
+        Instant date = parseDate(departureDate);
 
         Optional<Schedule> scheduleOpt = scheduleRepository.findByTrainIdAndDepartureDate(trainId, date);
         if (scheduleOpt.isEmpty()) {
-            logger.debug("No schedule found for train {} on {}", trainId, date);
+            log.debug("No schedule found for train {} on {}", trainId, date);
             return AvailabilityResponse.builder()
                     .trainId(trainId)
                     .totalSeats(0)
@@ -104,12 +101,12 @@ public class InventoryService {
                     lock.unlock();
                 }
             } else {
-                logger.warn("Could not acquire lock for reservation: {}", lockKey);
+                log.warn("Could not acquire lock for reservation: {}", lockKey);
                 return false;
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            logger.error("Interrupted while acquiring lock for reservation", e);
+            log.error("Interrupted while acquiring lock for reservation", e);
             return false;
         }
     }
@@ -127,12 +124,12 @@ public class InventoryService {
                     lock.unlock();
                 }
             } else {
-                logger.warn("Could not acquire lock for release: {}", lockKey);
+                log.warn("Could not acquire lock for release: {}", lockKey);
                 return false;
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            logger.error("Interrupted while acquiring lock for release", e);
+            log.error("Interrupted while acquiring lock for release", e);
             return false;
         }
     }
@@ -159,11 +156,11 @@ public class InventoryService {
     }
 
     private boolean doReserveSeats(ReserveSeatRequest request) {
-        LocalDate date = parseDate(request.getDepartureDate());
+        Instant date = request.getDepartureDate();
 
         Schedule schedule = scheduleRepository.findByTrainIdAndDepartureDateWithLock(
-                request.getTrainId(), date)
-                .orElseThrow(() -> new ScheduleNotFoundException(request.getTrainId(), date));
+                        request.getTrainId(), date)
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.SCHEDULE_NOT_FOUND));
 
         String seatClass = request.getSeatClass() != null ? request.getSeatClass().toUpperCase() : "ECONOMY";
         int requested = request.getNumberOfSeats();
@@ -183,7 +180,7 @@ public class InventoryService {
                 case "FIRST" -> schedule.getAvailableFirstClassSeats();
                 default -> schedule.getTotalAvailableSeats();
             };
-            throw new InsufficientSeatsException(seatClass, requested, available);
+            throw new BusinessException(InventoryErrorCode.INSUFFICIENT_SEATS);
         }
 
         // Update schedule
@@ -202,7 +199,7 @@ public class InventoryService {
 
         // Update inventory
         Inventory inventory = inventoryRepository.findByTrainIdAndDepartureDateWithLock(
-                request.getTrainId(), date)
+                        request.getTrainId(), date)
                 .orElse(null);
 
         if (inventory != null) {
@@ -220,19 +217,19 @@ public class InventoryService {
         }
 
         // Evict cache
-        evictCache(request.getTrainId(), request.getDepartureDate());
+        evictCache(request.getTrainId(), request.getDepartureDate().toString());
 
-        logger.info("Reserved {} {} seats for train {} on {}",
+        log.info("Reserved {} {} seats for train {} on {}",
                 requested, seatClass, request.getTrainId(), request.getDepartureDate());
         return true;
     }
 
     private boolean doReleaseSeats(Long trainId, String departureDate, Integer numberOfSeats, String seatClass) {
-        LocalDate date = parseDate(departureDate);
+        Instant date = parseDate(departureDate);
 
         Optional<Schedule> scheduleOpt = scheduleRepository.findByTrainIdAndDepartureDateWithLock(trainId, date);
         if (scheduleOpt.isEmpty()) {
-            logger.warn("Schedule not found for release: train={}, date={}", trainId, date);
+            log.warn("Schedule not found for release: train={}, date={}", trainId, date);
             return false;
         }
 
@@ -273,24 +270,32 @@ public class InventoryService {
         // Evict cache
         evictCache(trainId, departureDate);
 
-        logger.info("Released {} {} seats for train {} on {}",
+        log.info("Released {} {} seats for train {} on {}",
                 numberOfSeats, effectiveSeatClass, trainId, departureDate);
         return true;
     }
 
-    private LocalDate parseDate(String dateStr) {
+    private Instant parseDate(String dateStr) {
         try {
+            LocalDate localDate;
             if (dateStr.contains(" ")) {
-                return LocalDate.parse(dateStr.split(" ")[0], DATE_FORMATTER);
+                localDate = LocalDate.parse(dateStr.split(" ")[0], DATE_FORMATTER);
+            } else {
+                localDate = LocalDate.parse(dateStr, DATE_FORMATTER);
             }
-            return LocalDate.parse(dateStr, DATE_FORMATTER);
+            // Convert LocalDate to Instant at start of day in system timezone
+            return localDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid date format. Expected: yyyy-MM-dd", e);
+            throw new IllegalArgumentException("Invalid date format. Expected: yyyy-MM-dd or ISO-8601", e);
         }
     }
 
     private void evictCache(Long trainId, String departureDate) {
         String cacheKey = CACHE_PREFIX + trainId + ":" + departureDate;
         redisTemplate.delete(cacheKey);
+    }
+
+    private void evictCache(Long trainId, Instant departureDate) {
+        evictCache(trainId, departureDate.toString());
     }
 }

@@ -15,8 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.inventoryservice.dto.CreateRouteRequest;
 import com.example.inventoryservice.dto.RouteResponse;
 import com.example.inventoryservice.entity.Route;
-import com.example.inventoryservice.exception.RouteNotFoundException;
+import com.example.inventoryservice.exception.InventoryErrorCode;
 import com.example.inventoryservice.repository.RouteRepository;
+import com.example.shared.exception.BusinessException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,7 +34,7 @@ public class RouteService {
     public RouteResponse getRouteById(Long id) {
         logger.debug("Fetching route by id: {}", id);
         Route route = routeRepository.findById(id)
-                .orElseThrow(() -> new RouteNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.ROUTE_NOT_FOUND));
         return RouteResponse.from(route);
     }
 
@@ -52,7 +53,7 @@ public class RouteService {
     public RouteResponse getRouteByOriginAndDestination(String origin, String destination) {
         logger.debug("Fetching route from {} to {}", origin, destination);
         Route route = routeRepository.findByOriginAndDestination(origin, destination)
-                .orElseThrow(() -> new RouteNotFoundException(origin, destination));
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.ROUTE_NOT_FOUND));
         return RouteResponse.from(route);
     }
 
@@ -100,7 +101,7 @@ public class RouteService {
         logger.info("Updating route: {}", id);
 
         Route route = routeRepository.findById(id)
-                .orElseThrow(() -> new RouteNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.ROUTE_NOT_FOUND));
 
         route.setOrigin(request.getOrigin());
         route.setDestination(request.getDestination());
@@ -119,7 +120,7 @@ public class RouteService {
         logger.info("Deleting route: {}", id);
 
         Route route = routeRepository.findById(id)
-                .orElseThrow(() -> new RouteNotFoundException(id));
+                .orElseThrow(() -> new BusinessException(InventoryErrorCode.ROUTE_NOT_FOUND));
 
         route.setActive(false);
         routeRepository.save(route);

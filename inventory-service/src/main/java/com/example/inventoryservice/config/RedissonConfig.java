@@ -29,13 +29,15 @@ public class RedissonConfig {
         Config config = new Config();
         String address = String.format("redis://%s:%d", redisHost, redisPort);
 
-        SingleServerConfig serverConfig = config.useSingleServer()
-                .setAddress(address)
-                .setConnectionMinimumIdleSize(10)
-                .setConnectionPoolSize(64)
-                .setDnsMonitoringInterval(5000)
-                .setConnectTimeout(5000)
-                .setTimeout(3000);
+        SingleServerConfig singleServerConfig = config.useSingleServer();
+        singleServerConfig.setAddress(address);
+        singleServerConfig.setConnectionMinimumIdleSize(10);
+        singleServerConfig.setConnectionPoolSize(50);
+        singleServerConfig.setIdleConnectionTimeout(10000);
+        singleServerConfig.setConnectTimeout(10000);
+        singleServerConfig.setTimeout(3000);
+        singleServerConfig.setRetryAttempts(3);
+        singleServerConfig.setRetryInterval(1500);
 
         config.setThreads(16);
         config.setNettyThreads(32);

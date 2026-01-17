@@ -1,6 +1,6 @@
 package com.example.inventoryservice.dto;
 
-import java.time.LocalDate;
+import java.time.Instant;
 
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
@@ -25,7 +25,7 @@ public class SearchTrainRequest {
 
     @NotNull(message = "Departure date is required")
     @FutureOrPresent(message = "Departure date must be today or in the future")
-    private LocalDate departureDate;
+    private Instant departureDate;
 
     @Positive(message = "Number of passengers must be positive")
     @Builder.Default
@@ -33,4 +33,3 @@ public class SearchTrainRequest {
 
     private String seatClass; // ECONOMY, BUSINESS, FIRST
 }
-

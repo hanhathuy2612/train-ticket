@@ -1,6 +1,6 @@
 package com.example.inventoryservice.entity;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -46,7 +46,7 @@ public class Schedule {
     private Train train;
 
     @Column(nullable = false)
-    private LocalDate departureDate;
+    private Instant departureDate;
 
     @Column(nullable = false)
     private Integer availableEconomySeats;

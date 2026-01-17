@@ -1,7 +1,7 @@
 package com.example.inventoryservice.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
@@ -22,7 +22,7 @@ public class ScheduleResponse {
     
     private Long id;
     private TrainInfo train;
-    private LocalDate departureDate;
+    private Instant departureDate;
     private AvailabilityInfo availability;
     private String status;
     private String notes;

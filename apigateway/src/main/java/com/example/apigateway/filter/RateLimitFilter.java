@@ -1,10 +1,6 @@
 package com.example.apigateway.filter;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
+import com.example.apigateway.config.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -15,18 +11,19 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-
-import com.example.apigateway.config.Constants;
-
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Simple in-memory rate limiting filter
- * 
  * NOTE: This uses in-memory storage and won't work across multiple instances.
  * For production with multiple gateway instances, consider:
  * 1. Using Spring Cloud Gateway's RequestRateLimiter with Redis
- * 2. Using Bucket4j with Redis backend
+ * 2. Using Bucket with Redis backend
  * 3. Using external rate limiting service (Kong, Istio, etc.)
  */
 @Component

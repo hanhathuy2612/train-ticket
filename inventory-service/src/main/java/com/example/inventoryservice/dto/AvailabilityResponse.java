@@ -1,7 +1,7 @@
 package com.example.inventoryservice.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.LocalTime;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -23,7 +23,7 @@ public class AvailabilityResponse {
     private String trainName;
     private String origin;
     private String destination;
-    private LocalDate departureDate;
+    private Instant departureDate;
     private LocalTime departureTime;
     private LocalTime arrivalTime;
     private Integer totalSeats;

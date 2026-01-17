@@ -9,13 +9,13 @@ import lombok.Data;
  * Keycloak configuration properties
  * Maps to keycloak.* properties in application.yml
  */
+@Data
 @Configuration
 @ConfigurationProperties(prefix = "keycloak")
-@Data
 public class KeycloakConfig {
 
     /**
-     * Keycloak server URL (e.g., http://localhost:8080)
+     * Keycloak server URL (e.g., <a href="http://localhost:8080">...</a>)
      */
     private String serverUrl;
 

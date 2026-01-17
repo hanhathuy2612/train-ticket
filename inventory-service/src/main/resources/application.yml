@@ -15,9 +15,6 @@ spring:
       ddl-auto: update
     show-sql: false
     open-in-view: false
-    properties:
-      hibernate:
-        format_sql: true
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -62,21 +59,3 @@ management:
       enabled: false
     ping:
       enabled: false
-    # Tắt Redisson health check nếu có vấn đề
-    redisson:
-      enabled: false
-
-# ============================================================================
-# KEYCLOAK CONFIGURATION (for token verification)
-# ============================================================================
-# Used by TokenVerificationInterceptor to verify tokens forwarded from gateway
-keycloak:
-  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
-  realm: ${KEYCLOAK_REALM:train-ticket}
-
-# Token verification setting
-# Set to false to trust headers from gateway (for internal network)
-# In production with mTLS/internal network, you can set this to false
-token:
-  verification:
-    enabled: ${TOKEN_VERIFICATION_ENABLED:true}

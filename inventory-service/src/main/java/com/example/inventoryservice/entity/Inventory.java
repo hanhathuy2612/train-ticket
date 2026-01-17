@@ -1,6 +1,6 @@
 package com.example.inventoryservice.entity;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -20,12 +20,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "inventory", 
-    uniqueConstraints = @UniqueConstraint(columnNames = {"trainId", "departureDate"}),
-    indexes = {
-        @Index(name = "idx_inventory_train", columnList = "trainId"),
-        @Index(name = "idx_inventory_date", columnList = "departureDate")
-    })
+@Table(name = "inventory", uniqueConstraints = @UniqueConstraint(columnNames = { "trainId",
+        "departureDate" }), indexes = {
+                @Index(name = "idx_inventory_train", columnList = "trainId"),
+                @Index(name = "idx_inventory_date", columnList = "departureDate")
+        })
 @Data
 @Builder
 @NoArgsConstructor
@@ -40,7 +39,7 @@ public class Inventory {
     private Long trainId;
 
     @Column(nullable = false)
-    private LocalDate departureDate;
+    private Instant departureDate;
 
     @Column(nullable = false)
     private Integer totalSeats;
