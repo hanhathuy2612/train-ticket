@@ -30,6 +30,7 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+		implementation 'org.springframework.data:spring-data-commons'
 	
 	// JWT for token verification in services
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'

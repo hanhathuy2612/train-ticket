@@ -9,12 +9,12 @@ import com.example.shared.security.TokenVerificationInterceptor;
 
 /**
  * Web configuration for services to enable token verification interceptor
- * 
+ *
  * This is an example configuration. Services can:
  * 1. Extend this class and add their own interceptors
  * 2. Or create their own WebMvcConfigurer
  * 3. Or disable token verification if in trusted network
- * 
+ *
  * To disable token verification (trust gateway headers):
  * - Set system property: -Dtoken.verification.enabled=false
  * - Or set environment variable: TOKEN_VERIFICATION_ENABLED=false

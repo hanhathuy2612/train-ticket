@@ -2,14 +2,13 @@ package com.example.shared.dto;
 
 import java.util.List;
 
-import org.springframework.data.domain.Page;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Page;
 
 @Data
 @Builder
@@ -17,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PageResponse<T> {
-    
+
     private List<T> content;
     private int page;
     private int size;
@@ -27,7 +26,7 @@ public class PageResponse<T> {
     private boolean last;
     private boolean hasNext;
     private boolean hasPrevious;
-    
+
     public static <T> PageResponse<T> from(Page<T> page) {
         return PageResponse.<T>builder()
                 .content(page.getContent())
@@ -41,7 +40,7 @@ public class PageResponse<T> {
                 .hasPrevious(page.hasPrevious())
                 .build();
     }
-    
+
     public static <T> PageResponse<T> of(List<T> content, int page, int size, long totalElements) {
         int totalPages = (int) Math.ceil((double) totalElements / size);
         return PageResponse.<T>builder()
@@ -57,4 +56,3 @@ public class PageResponse<T> {
                 .build();
     }
 }
-

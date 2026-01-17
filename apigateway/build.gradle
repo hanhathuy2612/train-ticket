@@ -34,9 +34,6 @@ dependencies {
 	implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j'
 	
 	// Keycloak for authentication and authorization
-	// Note: Using custom KeycloakTokenValidator instead of keycloak-spring-boot-starter
-	// to avoid Spring MVC conflicts with Spring Cloud Gateway (requires WebFlux)
-	// implementation 'org.keycloak:keycloak-spring-boot-starter:23.0.0' // Removed - causes Spring MVC conflict
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 	
 	// JWT (still needed for token parsing)
