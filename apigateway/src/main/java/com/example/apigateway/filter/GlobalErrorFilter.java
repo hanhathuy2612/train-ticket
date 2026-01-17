@@ -10,6 +10,7 @@ import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
@@ -70,6 +71,7 @@ public class GlobalErrorFilter implements ErrorWebExceptionHandler {
         if (!response.isCommitted()) {
             response.setStatusCode(status);
             response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+            addCorsHeaders(response, exchange.getRequest());
 
             String responseBody = String.format(
                     "{\"success\":false,\"message\":\"%s\",\"statusCode\":%d,\"errorCode\":\"%s\"," +
@@ -82,5 +84,24 @@ public class GlobalErrorFilter implements ErrorWebExceptionHandler {
         }
 
         return Mono.empty();
+    }
+
+    /**
+     * Add CORS headers to response to allow cross-origin requests
+     * IMPORTANT: Cannot use "*" with allowCredentials: true
+     */
+    private void addCorsHeaders(ServerHttpResponse response, ServerHttpRequest request) {
+        String origin = request.getHeaders().getFirst("Origin");
+        if (origin != null && !origin.isEmpty()) {
+            // Echo back the origin (allows credentials)
+            response.getHeaders().add("Access-Control-Allow-Origin", origin);
+            response.getHeaders().add("Access-Control-Allow-Credentials", "true");
+        } else {
+            // No origin header - use "*" but cannot use credentials
+            response.getHeaders().add("Access-Control-Allow-Origin", "*");
+        }
+        response.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+        response.getHeaders().add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, X-User-Id, X-Correlation-Id, Accept, Origin");
+        response.getHeaders().add("Access-Control-Max-Age", "3600");
     }
 }

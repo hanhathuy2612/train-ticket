@@ -66,6 +66,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         logger.debug("Processing request: {} {}", method, path);
 
+        // Skip authentication for OPTIONS requests (CORS preflight)
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            logger.debug("Skipping authentication for OPTIONS preflight request: {}", path);
+            return chain.filter(exchange);
+        }
+
         // Skip authentication for excluded paths
         if (isExcludedPath(path)) {
             logger.debug("Skipping authentication for excluded path: {}", path);
@@ -139,6 +145,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
         response.getHeaders().add("Content-Type", "application/json");
+        addCorsHeaders(response, exchange.getRequest());
         String body = String.format("{\"success\":false,\"message\":\"%s\",\"statusCode\":401}", message);
         return response.writeWith(Mono.just(response.bufferFactory().wrap(body.getBytes())));
     }
@@ -147,7 +154,28 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.FORBIDDEN);
         response.getHeaders().add("Content-Type", "application/json");
+        addCorsHeaders(response, exchange.getRequest());
         String body = String.format("{\"success\":false,\"message\":\"%s\",\"statusCode\":403}", message);
         return response.writeWith(Mono.just(response.bufferFactory().wrap(body.getBytes())));
+    }
+
+    /**
+     * Add CORS headers to response to allow cross-origin requests
+     * IMPORTANT: Cannot use "*" with allowCredentials: true
+     */
+    private void addCorsHeaders(ServerHttpResponse response, ServerHttpRequest request) {
+        String origin = request.getHeaders().getFirst("Origin");
+        if (origin != null && !origin.isEmpty()) {
+            // Echo back the origin (allows credentials)
+            response.getHeaders().add("Access-Control-Allow-Origin", origin);
+            response.getHeaders().add("Access-Control-Allow-Credentials", "true");
+        } else {
+            // No origin header - use "*" but cannot use credentials
+            response.getHeaders().add("Access-Control-Allow-Origin", "*");
+        }
+        response.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+        response.getHeaders().add("Access-Control-Allow-Headers",
+                "Content-Type, Authorization, X-Requested-With, X-User-Id, X-Correlation-Id, Accept, Origin");
+        response.getHeaders().add("Access-Control-Max-Age", "3600");
     }
 }

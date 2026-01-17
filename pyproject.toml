@@ -10,52 +10,65 @@ down-v = "docker compose down -v"
 logs = "docker compose logs -f"
 ps = "docker compose ps"
 
-# Logs cho một service cụ thể
-logs-service = { shell = "docker compose logs -f {argv}" }
+# Logs for a specific service
+# Usage: poe logs-service apigateway
+logs-service = { cmd = "docker compose logs -f" }
 
-# Restart một service
-restart = { shell = "docker compose restart {argv}" }
+# Restart a service (without rebuild)
+# Usage: poe restart apigateway
+# This will run: `docker compose restart apigateway`
+restart = { cmd = "docker compose restart" }
 
-# Build một service
-build-service = { shell = "docker compose build {argv}" }
+# Build a service
+# Usage: poe build-service apigateway
+build-service = { cmd = "docker compose build" }
+
+# Rebuild and restart services (shortcuts)
+# Windows compatible - use ; instead of && for PowerShell
+rebuild-gateway = { shell = "docker compose build apigateway; docker compose up -d apigateway", interpreter = "pwsh" }
+rebuild-eureka = { shell = "docker compose build eureka-server; docker compose up -d eureka-server", interpreter = "pwsh" }
+rebuild-user = { shell = "docker compose build user-service; docker compose up -d user-service", interpreter = "pwsh" }
+rebuild-inventory = { shell = "docker compose build inventory-service; docker compose up -d inventory-service", interpreter = "pwsh" }
+rebuild-ticket = { shell = "docker compose build ticket-service; docker compose up -d ticket-service", interpreter = "pwsh" }
+rebuild-payment = { shell = "docker compose build payment-service; docker compose up -d payment-service", interpreter = "pwsh" }
+rebuild-notification = { shell = "docker compose build notification-service; docker compose up -d notification-service", interpreter = "pwsh" }
 
 # ============================================
 # GRADLE BUILD COMMANDS
 # ============================================
 
-build-all = """
-    cd eureka-server && ./gradlew build -x test && \
-    cd ../apigateway && ./gradlew build -x test && \
-    cd ../user-service && ./gradlew build -x test && \
-    cd ../inventory-service && ./gradlew build -x test && \
-    cd ../ticket-service && ./gradlew build -x test && \
-    cd ../payment-service && ./gradlew build -x test && \
-    cd ../notification-service && ./gradlew build -x test
-"""
+# Windows compatible gradle commands
+build-all = { shell = """
+    cd eureka-server; .\\gradlew build -x test; cd ..
+    cd apigateway; .\\gradlew build -x test; cd ..
+    cd user-service; .\\gradlew build -x test; cd ..
+    cd inventory-service; .\\gradlew build -x test; cd ..
+    cd ticket-service; .\\gradlew build -x test; cd ..
+    cd payment-service; .\\gradlew build -x test; cd ..
+    cd notification-service; .\\gradlew build -x test; cd ..
+""", interpreter = "pwsh" }
 
-build = { shell = "cd {argv} && ./gradlew build -x test" }
-
-clean-all = """
-    cd eureka-server && ./gradlew clean && \
-    cd ../apigateway && ./gradlew clean && \
-    cd ../user-service && ./gradlew clean && \
-    cd ../inventory-service && ./gradlew clean && \
-    cd ../ticket-service && ./gradlew clean && \
-    cd ../payment-service && ./gradlew clean && \
-    cd ../notification-service && ./gradlew clean
-"""
+clean-all = { shell = """
+    cd eureka-server; .\\gradlew clean; cd ..
+    cd apigateway; .\\gradlew clean; cd ..
+    cd user-service; .\\gradlew clean; cd ..
+    cd inventory-service; .\\gradlew clean; cd ..
+    cd ticket-service; .\\gradlew clean; cd ..
+    cd payment-service; .\\gradlew clean; cd ..
+    cd notification-service; .\\gradlew clean; cd ..
+""", interpreter = "pwsh" }
 
 # ============================================
 # RUN SERVICES LOCALLY
 # ============================================
 
-run-eureka = "cd eureka-server && ./gradlew bootRun"
-run-gateway = "cd apigateway && ./gradlew bootRun"
-run-user = "cd user-service && ./gradlew bootRun"
-run-inventory = "cd inventory-service && ./gradlew bootRun"
-run-ticket = "cd ticket-service && ./gradlew bootRun"
-run-payment = "cd payment-service && ./gradlew bootRun"
-run-notification = "cd notification-service && ./gradlew bootRun"
+run-eureka = { shell = "cd eureka-server; .\\gradlew bootRun", interpreter = "pwsh" }
+run-gateway = { shell = "cd apigateway; .\\gradlew bootRun", interpreter = "pwsh" }
+run-user = { shell = "cd user-service; .\\gradlew bootRun", interpreter = "pwsh" }
+run-inventory = { shell = "cd inventory-service; .\\gradlew bootRun", interpreter = "pwsh" }
+run-ticket = { shell = "cd ticket-service; .\\gradlew bootRun", interpreter = "pwsh" }
+run-payment = { shell = "cd payment-service; .\\gradlew bootRun", interpreter = "pwsh" }
+run-notification = { shell = "cd notification-service; .\\gradlew bootRun", interpreter = "pwsh" }
 
 # ============================================
 # DATABASE COMMANDS
@@ -63,9 +76,9 @@ run-notification = "cd notification-service && ./gradlew bootRun"
 
 db-connect = "docker exec -it train-ticket-postgres psql -U postgres -d trainticket"
 
-db-backup = { shell = "docker exec train-ticket-postgres pg_dump -U postgres trainticket > backup_$(date +%Y%m%d_%H%M%S).sql" }
+db-backup = { shell = "docker exec train-ticket-postgres pg_dump -U postgres trainticket > backup_$(Get-Date -Format 'yyyyMMdd_HHmmss').sql", interpreter = "pwsh" }
 
-db-restore = { shell = "docker exec -i train-ticket-postgres psql -U postgres trainticket < {argv}" }
+db-restore = { cmd = "docker exec -i train-ticket-postgres psql -U postgres trainticket" }
 
 # ============================================
 # REDIS COMMANDS
@@ -78,41 +91,35 @@ redis-flush = "docker exec train-ticket-redis redis-cli FLUSHALL"
 # RABBITMQ COMMANDS
 # ============================================
 
-rabbitmq-ui = { shell = "open http://localhost:15672 || xdg-open http://localhost:15672 || echo 'RabbitMQ UI: http://localhost:15672'" }
+rabbitmq-ui = { shell = "Start-Process 'http://localhost:15672'", interpreter = "pwsh" }
 
 # ============================================
 # HEALTH CHECKS
 # ============================================
 
-health = """
-    echo "Checking service health..." && \
-    echo "Eureka: http://localhost:8761" && \
-    curl -s http://localhost:8761/actuator/health || echo "Eureka: DOWN" && \
-    echo "" && \
-    echo "API Gateway: http://localhost:8080/actuator/health" && \
-    curl -s http://localhost:8080/actuator/health || echo "API Gateway: DOWN" && \
-    echo "" && \
-    echo "User Service: http://localhost:8081/actuator/health" && \
-    curl -s http://localhost:8081/actuator/health || echo "User Service: DOWN" && \
-    echo "" && \
-    echo "Inventory Service: http://localhost:8082/actuator/health" && \
-    curl -s http://localhost:8082/actuator/health || echo "Inventory Service: DOWN" && \
-    echo "" && \
-    echo "Ticket Service: http://localhost:8083/actuator/health" && \
-    curl -s http://localhost:8083/actuator/health || echo "Ticket Service: DOWN" && \
-    echo "" && \
-    echo "Payment Service: http://localhost:8084/actuator/health" && \
-    curl -s http://localhost:8084/actuator/health || echo "Payment Service: DOWN" && \
-    echo "" && \
-    echo "Notification Service: http://localhost:8085/actuator/health" && \
-    curl -s http://localhost:8085/actuator/health || echo "Notification Service: DOWN"
-"""
+health = { shell = """
+    Write-Host 'Checking service health...'
+    Write-Host 'Eureka: http://localhost:8761'
+    try { Invoke-RestMethod http://localhost:8761/actuator/health } catch { Write-Host 'Eureka: DOWN' }
+    Write-Host 'API Gateway: http://localhost:8080/actuator/health'
+    try { Invoke-RestMethod http://localhost:8080/actuator/health } catch { Write-Host 'API Gateway: DOWN' }
+    Write-Host 'User Service: http://localhost:8081/actuator/health'
+    try { Invoke-RestMethod http://localhost:8081/actuator/health } catch { Write-Host 'User Service: DOWN' }
+    Write-Host 'Inventory Service: http://localhost:8082/actuator/health'
+    try { Invoke-RestMethod http://localhost:8082/actuator/health } catch { Write-Host 'Inventory Service: DOWN' }
+    Write-Host 'Ticket Service: http://localhost:8083/actuator/health'
+    try { Invoke-RestMethod http://localhost:8083/actuator/health } catch { Write-Host 'Ticket Service: DOWN' }
+    Write-Host 'Payment Service: http://localhost:8084/actuator/health'
+    try { Invoke-RestMethod http://localhost:8084/actuator/health } catch { Write-Host 'Payment Service: DOWN' }
+    Write-Host 'Notification Service: http://localhost:8085/actuator/health'
+    try { Invoke-RestMethod http://localhost:8085/actuator/health } catch { Write-Host 'Notification Service: DOWN' }
+""", interpreter = "pwsh" }
 
 # ============================================
 # UTILITY COMMANDS
 # ============================================
 
-eureka-ui = { shell = "open http://localhost:8761 || xdg-open http://localhost:8761 || echo 'Eureka UI: http://localhost:8761'" }
+eureka-ui = { shell = "Start-Process 'http://localhost:8761'", interpreter = "pwsh" }
 
 containers = "docker ps --filter name=train-ticket"
 
@@ -126,29 +133,29 @@ clean-all-docker = "docker system prune -a --volumes -f"
 
 infra = "docker compose up -d postgres redis rabbitmq"
 
-infra-eureka = """
-    docker compose up -d postgres redis rabbitmq eureka-server && \
-    echo "Waiting for services to be ready..." && \
-    sleep 10 && \
-    echo "Infrastructure ready!"
-"""
+infra-eureka = { shell = """
+    docker compose up -d postgres redis rabbitmq eureka-server
+    Write-Host 'Waiting for services to be ready...'
+    Start-Sleep -Seconds 10
+    Write-Host 'Infrastructure ready!'
+""", interpreter = "pwsh" }
 
-quick-start = """
-    poe infra-eureka && \
-    echo "Quick start complete! You can now run services locally."
-"""
+quick-start = { shell = """
+    poe infra-eureka
+    Write-Host 'Quick start complete! You can now run services locally.'
+""", interpreter = "pwsh" }
 
-test = { shell = "cd {argv} && ./gradlew test" }
-
-test-all = """
-    for service in eureka-server apigateway user-service inventory-service ticket-service payment-service notification-service; do
-        if [ -d "$service" ]; then
-            echo "Testing $service..."
-            cd "$service" && ./gradlew test || true
-            cd ..
-        fi
-    done
-"""
+test-all = { shell = """
+    $services = @('eureka-server', 'apigateway', 'user-service', 'inventory-service', 'ticket-service', 'payment-service', 'notification-service')
+    foreach ($service in $services) {
+        if (Test-Path $service) {
+            Write-Host \"Testing $service...\"
+            Push-Location $service
+            .\\gradlew test
+            Pop-Location
+        }
+    }
+""", interpreter = "pwsh" }
 
 # ============================================
 # HELP

@@ -2,9 +2,10 @@ package com.example.apigateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
 
 @SpringBootApplication(exclude = {
-        org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration.class
+        RedisRepositoriesAutoConfiguration.class
 })
 public class ApigatewayApplication {
 

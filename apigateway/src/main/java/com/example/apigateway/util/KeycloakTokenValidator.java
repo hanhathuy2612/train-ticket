@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * Validates Keycloak JWT tokens
- * 
+ *
  * This class validates tokens by:
  * 1. Fetching public keys from Keycloak's JWKS endpoint
  * 2. Verifying token signature
@@ -50,7 +50,7 @@ public class KeycloakTokenValidator {
 
     /**
      * Validates a Keycloak JWT token
-     * 
+     *
      * @param token The JWT token to validate
      * @return true if token is valid, false otherwise
      */

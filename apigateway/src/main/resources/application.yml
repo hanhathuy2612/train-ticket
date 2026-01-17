@@ -35,26 +35,6 @@ spring:
         response-timeout: 30s # Max time to wait for response (30 seconds)
 
       # ========================================================================
-      # CORS (Cross-Origin Resource Sharing) CONFIGURATION
-      # ========================================================================
-      # Allows frontend applications from different origins to access the API
-      # In production, replace "*" with specific allowed origins for security
-      globalcors:
-        cors-configurations:
-          "[/**]": # Apply to all paths
-            allowedOrigins: "*" # Allow all origins (change in production!)
-            allowedMethods: # HTTP methods allowed
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - PATCH
-              - OPTIONS
-            allowedHeaders: "*" # Allow all headers
-            allowCredentials: true # Allow cookies/credentials
-            maxAge: 3600 # Cache preflight requests for 1 hour
-
-      # ========================================================================
       # ROUTE CONFIGURATION
       # ========================================================================
       # Defines how requests are routed to backend microservices
