@@ -16,11 +16,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Security configuration for token verification
- * 
+ *
  * This enables hybrid security approach:
  * - API Gateway validates token fully
  * - Service verifies token signature (lightweight check)
- * 
+ *
  * To disable token verification (trust gateway headers):
  * - Set: token.verification.enabled=false in application.yml
  * - Or set environment variable: TOKEN_VERIFICATION_ENABLED=false

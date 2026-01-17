@@ -45,7 +45,7 @@ public class PaymentService {
 
     @Transactional
     public PaymentResponse processPayment(Long userId, ProcessPaymentRequest request) {
-        logger.info("Processing payment for user: {}, ticket: {}, amount: {}", 
+        logger.info("Processing payment for user: {}, ticket: {}, amount: {}",
                 userId, request.getTicketId(), request.getAmount());
 
         // Check for duplicate payment
@@ -78,7 +78,7 @@ public class PaymentService {
         // Process payment based on method
         try {
             boolean success = processWithGateway(payment, request);
-            
+
             if (success) {
                 payment.setStatus(PaymentStatus.COMPLETED);
                 payment.setPaidAt(LocalDateTime.now());
@@ -214,7 +214,7 @@ public class PaymentService {
                 .map(PaymentResponse::from);
     }
 
-    public Page<PaymentResponse> searchPayments(Long userId, PaymentStatus status, 
+    public Page<PaymentResponse> searchPayments(Long userId, PaymentStatus status,
             PaymentMethod method, Pageable pageable) {
         return paymentRepository.searchPayments(userId, status, method, pageable)
                 .map(PaymentResponse::from);
@@ -222,19 +222,21 @@ public class PaymentService {
 
     public PaymentStatsResponse getUserPaymentStats(Long userId) {
         List<Payment> payments = paymentRepository.findByUserId(userId);
-        
+
         long completed = payments.stream().filter(p -> p.getStatus() == PaymentStatus.COMPLETED).count();
         long failed = payments.stream().filter(p -> p.getStatus() == PaymentStatus.FAILED).count();
-        long refunded = payments.stream().filter(p -> 
-                p.getStatus() == PaymentStatus.REFUNDED || p.getStatus() == PaymentStatus.PARTIALLY_REFUNDED).count();
-        long pending = payments.stream().filter(p -> 
-                p.getStatus() == PaymentStatus.PENDING || p.getStatus() == PaymentStatus.PROCESSING).count();
-        
+        long refunded = payments.stream().filter(
+                p -> p.getStatus() == PaymentStatus.REFUNDED || p.getStatus() == PaymentStatus.PARTIALLY_REFUNDED)
+                .count();
+        long pending = payments.stream()
+                .filter(p -> p.getStatus() == PaymentStatus.PENDING || p.getStatus() == PaymentStatus.PROCESSING)
+                .count();
+
         BigDecimal totalAmount = payments.stream()
                 .filter(p -> p.getStatus() == PaymentStatus.COMPLETED)
                 .map(Payment::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
+
         BigDecimal totalRefunded = payments.stream()
                 .filter(p -> p.getRefundAmount() != null)
                 .map(Payment::getRefundAmount)
@@ -269,9 +271,9 @@ public class PaymentService {
         long completed = paymentRepository.countByStatus(PaymentStatus.COMPLETED);
         long failed = paymentRepository.countByStatus(PaymentStatus.FAILED);
         long pending = paymentRepository.countByStatus(PaymentStatus.PENDING);
-        long refunded = paymentRepository.countByStatus(PaymentStatus.REFUNDED) + 
-                       paymentRepository.countByStatus(PaymentStatus.PARTIALLY_REFUNDED);
-        
+        long refunded = paymentRepository.countByStatus(PaymentStatus.REFUNDED) +
+                paymentRepository.countByStatus(PaymentStatus.PARTIALLY_REFUNDED);
+
         BigDecimal totalAmount = paymentRepository.sumCompletedPayments();
         BigDecimal totalRefunded = paymentRepository.sumRefundedAmount();
 
@@ -283,8 +285,9 @@ public class PaymentService {
                 .pendingPayments(pending)
                 .totalAmount(totalAmount != null ? totalAmount : BigDecimal.ZERO)
                 .totalRefunded(totalRefunded != null ? totalRefunded : BigDecimal.ZERO)
-                .netAmount(totalAmount != null && totalRefunded != null 
-                        ? totalAmount.subtract(totalRefunded) : BigDecimal.ZERO)
+                .netAmount(totalAmount != null && totalRefunded != null
+                        ? totalAmount.subtract(totalRefunded)
+                        : BigDecimal.ZERO)
                 .build();
     }
 
@@ -294,13 +297,13 @@ public class PaymentService {
         // Simulate payment gateway processing
         // In real implementation, this would call actual payment gateway API
         logger.debug("Processing payment with gateway: {}", request.getPaymentMethod());
-        
+
         try {
             Thread.sleep(100); // Simulate network delay
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         // Simulate 95% success rate
         return Math.random() > 0.05;
     }
