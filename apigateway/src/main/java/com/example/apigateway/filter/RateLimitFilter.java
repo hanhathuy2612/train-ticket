@@ -1,8 +1,10 @@
 package com.example.apigateway.filter;
 
-import com.example.apigateway.config.Constants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -11,12 +13,11 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import com.example.apigateway.config.Constants;
+
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 /**
  * Simple in-memory rate limiting filter
@@ -26,15 +27,14 @@ import java.util.concurrent.atomic.AtomicLong;
  * 2. Using Bucket with Redis backend
  * 3. Using external rate limiting service (Kong, Istio, etc.)
  */
+@Slf4j
 @Component
 public class RateLimitFilter implements GlobalFilter, Ordered {
-
-    private static final Logger logger = LoggerFactory.getLogger(RateLimitFilter.class);
 
     // Rate limit configuration
     private static final int DEFAULT_REQUESTS_PER_MINUTE = 100;
     private static final int AUTH_REQUESTS_PER_MINUTE = 10; // Stricter for auth endpoints
-    private static final long WINDOW_SIZE_MS = 60000; // 1 minute window
+    private static final long WINDOW_SIZE_MS = 60000; // 1-minute window
 
     // In-memory rate limit storage (use Redis in production)
     private final Map<String, RateLimitEntry> rateLimitMap = new ConcurrentHashMap<>();
@@ -60,7 +60,7 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
         int currentCount = entry.count.incrementAndGet();
 
         if (currentCount > maxRequests) {
-            logger.warn("Rate limit exceeded for key: {} (count: {}, max: {})", key, currentCount, maxRequests);
+            log.warn("Rate limit exceeded for key: {} (count: {}, max: {})", key, currentCount, maxRequests);
             return onRateLimitExceeded(exchange);
         }
 

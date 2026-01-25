@@ -1,6 +1,10 @@
 spring:
   application:
     name: inventory-service
+  # Force servlet (MVC) stack instead of reactive (WebFlux)
+  # This is needed because we use SpringDoc OpenAPI which requires MVC
+  main:
+    web-application-type: servlet
   datasource:
     url: jdbc:postgresql://localhost:5432/trainticket
     username: postgres
@@ -59,3 +63,12 @@ management:
       enabled: false
     ping:
       enabled: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha

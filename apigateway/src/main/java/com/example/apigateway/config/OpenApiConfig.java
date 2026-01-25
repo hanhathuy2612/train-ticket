@@ -10,12 +10,12 @@ import io.swagger.v3.oas.annotations.servers.Server;
 
 /**
  * Provides API documentation and helps debug CORS issues
- * Access Swagger UI at: <a href="http://localhost:8080/swagger-ui.html">...</a>
- * Access API docs at: <a href="http://localhost:8080/v3/api-docs">...</a>
+ * Access Swagger UI at: <a href="http://localhost:8189/swagger-ui.html">http://localhost:8189/swagger-ui.html</a>
+ * Access API docs at: <a href="http://localhost:8189/v3/api-docs">http://localhost:8189/v3/api-docs</a>
  */
 @Configuration
 @OpenAPIDefinition(info = @Info(title = "Train Ticket API Gateway", version = "1.0.0", description = "API Gateway for Train Ticket Booking System with Keycloak JWT Authentication", contact = @Contact(name = "API Support", email = "support@trainticket.com"), license = @License(name = "Apache 2.0", url = "https://www.apache.org/licenses/LICENSE-2.0.html")), servers = {
-        @Server(url = "http://localhost:8080", description = "Local Development Server")
+        @Server(url = "http://localhost:8189", description = "Local Development Server")
 })
 public class OpenApiConfig {
     // Configuration is done via annotations

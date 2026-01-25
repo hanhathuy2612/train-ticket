@@ -1,0 +1,60 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "apigateway"
+		},
+		{
+			"path": "eureka-server"
+		},
+		{
+			"path": "inventory-service"
+		},
+		{
+			"path": "notification-service"
+		},
+		{
+			"path": "payment-service"
+		},
+		{
+			"path": "shared"
+		},
+		{
+			"path": "ticket-service"
+		},
+		{
+			"path": "train-ticket-frontend"
+		},
+		{
+			"path": "user-service"
+		}
+	],
+	"settings": {
+		// Editor settings
+		"editor.insertSpaces": true,
+		"editor.tabSize": 4,
+		"editor.detectIndentation": false,
+		"editor.formatOnSave": true,
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": "explicit"
+		},
+		
+		// Java specific settings
+		"[java]": {
+			"editor.tabSize": 4,
+			"editor.insertSpaces": true,
+			"editor.defaultFormatter": "redhat.java",
+			"editor.formatOnSave": true
+		},
+		
+		// File associations
+		"files.eol": "\n",
+		"files.insertFinalNewline": true,
+		"files.trimTrailingWhitespace": true,
+		
+		// EditorConfig support
+		"editorconfig.generateAuto": false
+	}
+}

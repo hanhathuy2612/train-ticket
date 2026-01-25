@@ -48,7 +48,7 @@ public CorsConfigurationSource corsConfigurationSource() {
     configuration.setAllowedHeaders(Arrays.asList("*"));
     configuration.setAllowCredentials(true);
     configuration.setMaxAge(3600L);
-    
+
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
     return source;
@@ -152,16 +152,16 @@ logging:
 
 1. **Không dùng `"*"` với `allowCredentials: true`**
    - Phải specify exact origins
-   
+
 2. **CORS phải được xử lý TRƯỚC authentication**
    - SecurityConfig xử lý CORS trước Gateway filters
-   
+
 3. **Error responses cũng cần CORS headers**
    - JwtAuthenticationFilter và GlobalErrorFilter đều thêm CORS headers
-   
+
 4. **Test bằng browser, không chỉ Postman**
    - Postman không enforce CORS policy
-   
+
 5. **Sử dụng Swagger UI để debug**
    - Xem request/response headers trực tiếp
 

@@ -1,5 +1,17 @@
 package com.example.inventoryservice.security;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.SecurityException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+
 import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.PublicKey;
@@ -8,26 +20,12 @@ import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.SecurityException;
-
 /**
  * Utility class for lightweight token signature verification
- * 
+ * <p>
  * This is used by services to verify that tokens forwarded from API Gateway
  * are valid. It caches public keys from Keycloak to avoid repeated fetches.
- * 
+ * <p>
  * Note: This is a lightweight verification - it only checks signature and expiration.
  * Full validation (issuer, audience) should be done at the gateway level.
  */
@@ -55,7 +53,7 @@ public class TokenVerificationUtility {
 
     /**
      * Lightweight token verification - only checks signature and expiration
-     * 
+     *
      * @param token The JWT token to verify
      * @return true if token signature is valid and not expired, false otherwise
      */
@@ -87,10 +85,10 @@ public class TokenVerificationUtility {
 
             // Verify token signature
             Claims claims = Jwts.parser()
-                    .verifyWith(publicKey)
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+                .verifyWith(publicKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
 
             // Check expiration
             if (claims.getExpiration() != null && claims.getExpiration().before(new java.util.Date())) {
@@ -125,26 +123,26 @@ public class TokenVerificationUtility {
         // Fetch from Keycloak
         try {
             String jwksUrl = String.format("%s/realms/%s/protocol/openid-connect/certs",
-                    keycloakServerUrl, realm);
+                keycloakServerUrl, realm);
 
             PublicKey publicKey = webClient.get()
-                    .uri(jwksUrl)
-                    .retrieve()
-                    .bodyToMono(JsonNode.class)
-                    .map(jwks -> {
-                        JsonNode keys = jwks.get("keys");
-                        if (keys == null || !keys.isArray()) {
-                            throw new RuntimeException("Invalid JWKS response: no keys array");
+                .uri(jwksUrl)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .map(jwks -> {
+                    JsonNode keys = jwks.get("keys");
+                    if (keys == null || !keys.isArray()) {
+                        throw new RuntimeException("Invalid JWKS response: no keys array");
+                    }
+                    for (JsonNode key : keys) {
+                        JsonNode kidNode = key.get("kid");
+                        if (kidNode != null && kid != null && kidNode.asText().equals(kid)) {
+                            return buildPublicKey(key);
                         }
-                        for (JsonNode key : keys) {
-                            JsonNode kidNode = key.get("kid");
-                            if (kidNode != null && kid != null && kidNode.asText().equals(kid)) {
-                                return buildPublicKey(key);
-                            }
-                        }
-                        throw new RuntimeException("Key with kid " + kid + " not found");
-                    })
-                    .block();
+                    }
+                    throw new RuntimeException("Key with kid " + kid + " not found");
+                })
+                .block();
 
             if (publicKey != null) {
                 // Cache the key

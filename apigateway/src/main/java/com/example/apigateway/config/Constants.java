@@ -4,6 +4,8 @@ public final class Constants {
 
     public static final String CORRELATION_ID_HEADER = "X-Correlation-Id";
     public static final String USER_ID_HEADER = "X-User-Id";
+    public static final String USER_NAME_HEADER = "X-User-Name";
+    public static final String USER_ROLES_HEADER = "X-User-Roles";
     public static final String USER_AGENT_HEADER = "User-Agent";
     public static final String IP_HEADER = "X-Forwarded-For";
     public static final String X_REAL_IP_HEADER = "X-Real-IP";

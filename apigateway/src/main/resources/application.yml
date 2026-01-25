@@ -21,18 +21,70 @@ spring:
       host: localhost
       port: 6379
       timeout: 2000ms # Connection timeout
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8080/auth/realms/train-ticket
-          jwk-set-uri: http://localhost:8080/auth/realms/train-ticket/protocol/openid-connect/certs
   # Spring Cloud Gateway configuration
+  # Using WebFlux reactive stack (required for Spring Cloud Gateway)
+  # IMPORTANT: In Spring Cloud 2025.0.0+, the property prefix changed:
+  # - OLD (deprecated): spring.cloud.gateway.*
+  # - NEW: spring.cloud.gateway.server.webflux.*
   cloud:
     gateway:
+      # Enable metrics for monitoring
+      # Server WebFlux configuration (NEW format for Spring Cloud 2025.0.0+)
       server:
         webflux:
+          # Route definitions
+          # IMPORTANT: OpenAPI routes must be defined BEFORE service routes
+          # to ensure /api/*/v3/api-docs paths are matched first
           routes:
+            # ====================================================================
+            # OpenAPI/Swagger routes - Proxy OpenAPI docs from microservices
+            # These routes must be FIRST to avoid conflicts with service routes
+            # ====================================================================
+            
+            # User Service OpenAPI
+            - id: user-service-openapi
+              uri: lb://user-service
+              predicates:
+                - Path=/api/users/v3/api-docs/**
+              filters:
+                - RewritePath=/api/users/(?<segment>.*), /$\{segment}
+
+            # Ticket Service OpenAPI
+            - id: ticket-service-openapi
+              uri: lb://ticket-service
+              predicates:
+                - Path=/api/tickets/v3/api-docs/**
+              filters:
+                - RewritePath=/api/tickets/(?<segment>.*), /$\{segment}
+
+            # Inventory Service OpenAPI
+            - id: inventory-service-openapi
+              uri: lb://inventory-service
+              predicates:
+                - Path=/api/inventory/v3/api-docs/**
+              filters:
+                - RewritePath=/api/inventory/(?<segment>.*), /$\{segment}
+
+            # Payment Service OpenAPI
+            - id: payment-service-openapi
+              uri: lb://payment-service
+              predicates:
+                - Path=/api/payments/v3/api-docs/**
+              filters:
+                - RewritePath=/api/payments/(?<segment>.*), /$\{segment}
+
+            # Notification Service OpenAPI
+            - id: notification-service-openapi
+              uri: lb://notification-service
+              predicates:
+                - Path=/api/notifications/v3/api-docs/**
+              filters:
+                - RewritePath=/api/notifications/(?<segment>.*), /$\{segment}
+
+            # ====================================================================
+            # Service routes - Main API routes
+            # ====================================================================
+            
             # Route: User Service
             # Matches: /api/users/** -> forwards to user-service
             - id: user-service
@@ -97,12 +149,14 @@ spring:
                   args:
                     name: notification-service-circuit-breaker
                     fallbackUri: forward:/fallback/notification-service
+          metrics:
+            enabled: true
 
 # ============================================================================
 # SERVER CONFIGURATION
 # ============================================================================
 server:
-  port: 8189 # Gateway listens on port 8080
+  port: 8189 # Gateway listens on port 8189
 
 # ============================================================================
 # EUREKA SERVICE DISCOVERY CONFIGURATION
@@ -187,16 +241,55 @@ management:
 # OPENAPI/SWAGGER CONFIGURATION
 # ============================================================================
 # API Documentation and debugging tool
-# Access Swagger UI at: http://localhost:8080/swagger-ui.html
-# Access API docs at: http://localhost:8080/v3/api-docs
+# 
+# Access Swagger UI: http://localhost:8189/swagger-ui.html
+# 
+# Swagger UI sẽ hiển thị dropdown "Select a definition" ở góc trên bên phải
+# để chọn service muốn xem:
+# - All Services (Gateway) - Tất cả APIs
+# - User Service API - Chỉ APIs từ User Service
+# - Ticket Service API - Chỉ APIs từ Ticket Service
+# - Inventory Service API - Chỉ APIs từ Inventory Service
+# - Payment Service API - Chỉ APIs từ Payment Service
+# - Notification Service API - Chỉ APIs từ Notification Service
+# 
+# Direct OpenAPI JSON URLs:
+# - Gateway: http://localhost:8189/v3/api-docs
+# - User Service: http://localhost:8189/api/users/v3/api-docs
+# - Ticket Service: http://localhost:8189/api/tickets/v3/api-docs
+# - Inventory Service: http://localhost:8189/api/inventory/v3/api-docs
+# - Payment Service: http://localhost:8189/api/payments/v3/api-docs
+# - Notification Service: http://localhost:8189/api/notifications/v3/api-docs
 springdoc:
   api-docs:
     enabled: true
     path: /v3/api-docs
+    groups:
+      enabled: true
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
     config-url: /v3/api-docs/swagger-config
+    # Enable group selection in Swagger UI
+    urls:
+      - name: All Services (Gateway)
+        url: /v3/api-docs
+        display-name: All Services
+      - name: User Service
+        url: /api/users/v3/api-docs
+        display-name: User Service API
+      - name: Ticket Service
+        url: /api/tickets/v3/api-docs
+        display-name: Ticket Service API
+      - name: Inventory Service
+        url: /api/inventory/v3/api-docs
+        display-name: Inventory Service API
+      - name: Payment Service
+        url: /api/payments/v3/api-docs
+        display-name: Payment Service API
+      - name: Notification Service
+        url: /api/notifications/v3/api-docs
+        display-name: Notification Service API
     # Add CORS configuration for Swagger UI
     try-it-out-enabled: true
     filter: true

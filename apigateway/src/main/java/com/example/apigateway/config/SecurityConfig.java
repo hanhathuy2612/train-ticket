@@ -1,8 +1,5 @@
 package com.example.apigateway.config;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,20 +10,33 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
- * Security Configuration for API Gateway
+ * Security Configuration for API Gateway (WebFlux Reactive Stack)
+ * <p>
+ * This configuration uses Spring Security WebFlux for reactive applications.
  * <p>
  * IMPORTANT: This gateway uses CUSTOM JwtAuthenticationFilter (GlobalFilter)
- * for authentication,
- * NOT Spring Security OAuth2 Resource Server. Therefore:
+ * for authentication, NOT Spring Security OAuth2 Resource Server. Therefore:
  * <p>
- * 1. OAuth2 Resource Server is DISABLED (commented out)
+ * 1. OAuth2 Resource Server is NOT enabled in SecurityWebFilterChain
  * 2. All requests are permitted to pass through to Gateway filters
- * 3. Authentication is handled by JwtAuthenticationFilter
+ * 3. Authentication is handled by JwtAuthenticationFilter (GlobalFilter)
+ * - JwtAuthenticationFilter validates JWT tokens with Keycloak
+ * - Extracts user info (userId, username, roles) from token
+ * - Adds headers: X-User-Id, X-User-Name, X-User-Roles, X-Auth-Token
+ * - Blocks unauthorized requests (401)
  * <p>
- * CORS is configured directly in SecurityConfig using CorsConfigurationSource
- * bean.
+ * CORS is configured using CorsConfigurationSource bean.
  * This ensures CORS is handled by Spring Security BEFORE Gateway filters.
+ * <p>
+ * WebFlux Security Best Practices:
+ * - Use @EnableWebFluxSecurity (not @EnableWebSecurity)
+ * - Use ServerHttpSecurity (not HttpSecurity)
+ * - Use authorizeExchange() (not authorizeRequests())
+ * - Use pathMatchers() with ServerWebExchange
  */
 @Configuration
 @EnableWebFluxSecurity
@@ -43,26 +53,26 @@ public class SecurityConfig {
 
         // Allowed origins (cannot use "*" with allowCredentials: true)
         configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:4200",
-                "http://localhost:3000"));
+            "http://localhost:4200",
+            "http://localhost:3000"));
 
         // Allowed HTTP methods
         configuration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 
         // Allowed headers
         configuration.setAllowedHeaders(List.of(
-                "*"));
+            "*"));
 
         // Exposed headers (headers that browser can access)
         configuration.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "X-User-Id",
-                "X-User-Name",
-                "X-User-Roles",
-                "X-RateLimit-Limit",
-                "X-RateLimit-Remaining",
-                "X-RateLimit-Reset"));
+            "Authorization",
+            "X-User-Id",
+            "X-User-Name",
+            "X-User-Roles",
+            "X-RateLimit-Limit",
+            "X-RateLimit-Remaining",
+            "X-RateLimit-Reset"));
 
         // Allow credentials (cookies, authorization headers)
         configuration.setAllowCredentials(true);
@@ -77,52 +87,50 @@ public class SecurityConfig {
         return source;
     }
 
+    /**
+     * Security Web Filter Chain for WebFlux
+     * <p>
+     * This configures Spring Security for reactive WebFlux applications.
+     * Since we use custom JwtAuthenticationFilter for authentication,
+     * we permit all requests to pass through to Gateway filters.
+     * <p>
+     * Filter Order:
+     * 1. CORS (handled by Spring Security first)
+     * 2. CSRF (disabled for stateless API)
+     * 3. Authorization (all permitted to pass to Gateway filters)
+     * 4. Gateway Filters (LoggingFilter, RateLimitFilter, JwtAuthenticationFilter)
+     */
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // Disable CSRF for stateless API
-                .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                // Authorization rules
-                .authorizeExchange(ex -> ex
-                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .pathMatchers(
-                                "/api/users/register",
-                                "/api/users/login",
-                                "/api/users/forgot-password",
-                                "/api/users/reset-password",
-                                "/api/users/refresh-token",
-                                "/api/inventory/health",
-                                // "/api/inventory/schedules/search",
-                                "/api/inventory/schedules/availability",
-                                "/api/tickets/health",
-                                "/api/payments/health",
-                                "/api/notifications/health",
-                                "/actuator/**",
-                                // OpenAPI/Swagger endpoints for documentation and debugging
-                                "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/v3/api-docs",
-                                "/v3/api-docs/**",
-                                "/webjars/**")
-                        .permitAll()
-                        // Permit all other requests - authentication is handled by
-                        // JwtAuthenticationFilter (GlobalFilter)
-                        // NOT by Spring Security OAuth2 Resource Server
-                        .anyExchange().permitAll())
-
-                // 🔥 QUAN TRỌNG: Disable OAuth2 Resource Server
-                // Vì đang dùng custom JwtAuthenticationFilter (GlobalFilter) để validate
-                // Keycloak tokens
-                // Nếu enable OAuth2 Resource Server, nó sẽ:
-                // 1. Chạy TRƯỚC Gateway filters
-                // 2. Yêu cầu authentication cho tất cả requests
-                // 3. Chặn OPTIONS requests và excluded paths
-                //
-                // Uncomment only if you want to use Spring Security OAuth2 Resource Server
-                // instead:
-                // .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
-
-                .build();
+            // Configure CORS - must be before authorization
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // Disable CSRF for stateless REST API
+            // CSRF protection is not needed for stateless APIs using JWT tokens
+            .csrf(ServerHttpSecurity.CsrfSpec::disable)
+            // Disable HTTP Basic Authentication (we use JWT)
+            .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+            // Disable form login (we use JWT)
+            .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+            // Disable logout (stateless API)
+            .logout(ServerHttpSecurity.LogoutSpec::disable)
+            // Authorization rules
+            // All requests are permitted to pass through to Gateway filters
+            // Authentication is handled by JwtAuthenticationFilter (GlobalFilter)
+            //
+            // NOTE: .pathMatchers(...).permitAll() is NOT needed here because:
+            // 1. .anyExchange().permitAll() already permits all requests
+            // 2. Spring Security doesn't validate JWT tokens (no OAuth2 Resource Server)
+            // 3. JwtAuthenticationFilter is the SINGLE SOURCE OF TRUTH for public endpoints
+            //  are defined in JwtAuthenticationFilter.PUBLIC_PATHS
+            .authorizeExchange(ex -> ex
+                // Allow all OPTIONS requests (CORS preflight)
+                .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // All other requests are permitted to pass through to Gateway filters
+                // JwtAuthenticationFilter will handle authentication and decide which
+                // endpoints are public vs protected based on PUBLIC_PATHS list
+                .anyExchange().permitAll())
+            // Build the security filter chain
+            .build();
     }
 }

@@ -45,37 +45,37 @@ public class LoggingFilter implements GlobalFilter, Ordered {
 
         // Log incoming request
         log.info("Incoming request: {} {} | Client: {} | User: {} | Correlation: {} | User-Agent: {}",
-                method, path, clientIp, userId != null ? userId : "anonymous", correlationId, userAgent);
+            method, path, clientIp, userId != null ? userId : "anonymous", correlationId, userAgent);
 
         // Add correlation ID to request headers
         final String finalCorrelationId = correlationId;
         ServerHttpRequest modifiedRequest = request.mutate()
-                .header(Constants.CORRELATION_ID_HEADER, finalCorrelationId)
-                .build();
+            .header(Constants.CORRELATION_ID_HEADER, finalCorrelationId)
+            .build();
 
         return chain.filter(exchange.mutate().request(modifiedRequest).build())
-                .then(Mono.fromRunnable(() -> {
-                    // Log outgoing response
-                    ServerHttpResponse response = exchange.getResponse();
-                    Long startTimeValue = exchange.getAttribute(Constants.START_TIME_ATTRIBUTE);
-                    long duration = startTimeValue != null
-                            ? System.currentTimeMillis() - startTimeValue
-                            : 0;
+            .then(Mono.fromRunnable(() -> {
+                // Log outgoing response
+                ServerHttpResponse response = exchange.getResponse();
+                Long startTimeValue = exchange.getAttribute(Constants.START_TIME_ATTRIBUTE);
+                long duration = startTimeValue != null
+                    ? System.currentTimeMillis() - startTimeValue
+                    : 0;
 
-                    int statusCode = response.getStatusCode() != null
-                            ? response.getStatusCode().value()
-                            : 0;
+                int statusCode = response.getStatusCode() != null
+                    ? response.getStatusCode().value()
+                    : 0;
 
-                    if (statusCode >= 400) {
-                        log.warn(
-                                "Response: {} {} | Status: {} | Duration: {}ms | Correlation: {} | Client: {} | User: {} | User-Agent: {}",
-                                method, path, statusCode, duration, finalCorrelationId, clientIp, userId, userAgent);
-                    } else {
-                        log.info(
-                                "Response: {} {} | Status: {} | Duration: {}ms | Correlation: {} | Client: {} | User: {} | User-Agent: {}",
-                                method, path, statusCode, duration, finalCorrelationId, clientIp, userId, userAgent);
-                    }
-                }));
+                if (statusCode >= 400) {
+                    log.warn(
+                        "Response: {} {} | Status: {} | Duration: {}ms | Correlation: {} | Client: {} | User: {} | User-Agent: {}",
+                        method, path, statusCode, duration, finalCorrelationId, clientIp, userId, userAgent);
+                } else {
+                    log.info(
+                        "Response: {} {} | Status: {} | Duration: {}ms | Correlation: {} | Client: {} | User: {} | User-Agent: {}",
+                        method, path, statusCode, duration, finalCorrelationId, clientIp, userId, userAgent);
+                }
+            }));
     }
 
     @Override

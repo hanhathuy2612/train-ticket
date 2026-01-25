@@ -11,7 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Interceptor to verify token signature for requests coming from API Gateway
- * 
+ *
  * This provides an additional security layer in the hybrid approach:
  * - Gateway validates token fully
  * - Services verify token signature (lightweight check)
@@ -23,7 +23,7 @@ public class TokenVerificationInterceptor implements HandlerInterceptor {
     private final TokenVerificationUtility tokenVerificationUtility;
     private final boolean enabled;
 
-    public TokenVerificationInterceptor(TokenVerificationUtility tokenVerificationUtility, 
+    public TokenVerificationInterceptor(TokenVerificationUtility tokenVerificationUtility,
                                        @Value("${token.verification.enabled:true}") boolean enabled) {
         this.tokenVerificationUtility = tokenVerificationUtility;
         this.enabled = enabled;

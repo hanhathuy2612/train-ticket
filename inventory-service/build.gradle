@@ -26,28 +26,34 @@ ext {
 dependencies {
 	// Shared module - common exceptions and utilities
 	implementation 'com.train.ticket:shared:0.0.1-SNAPSHOT'
-	
+
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-	
+
 	// PostgreSQL
 	runtimeOnly 'org.postgresql:postgresql'
-	
+
 	// Redis for distributed locks
 	implementation 'org.redisson:redisson-spring-boot-starter:3.24.3'
-	
+
 	// JWT for token verification (hybrid security approach)
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
 	implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
 	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
-	
+
 	// WebClient for fetching Keycloak public keys
-	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-	
+	// Use only spring-webflux (not starter) to avoid WebFlux auto-configuration conflicts
+	// WebClient works fine in servlet stack without full WebFlux
+	implementation 'org.springframework:spring-webflux'
+
+	// OpenAPI/Swagger for API documentation
+	// Version 2.6.0+ is compatible with Spring Boot 3.5.0
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 

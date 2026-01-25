@@ -16,11 +16,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Security configuration for token verification
- * 
+ *
  * This enables hybrid security approach:
  * - API Gateway validates token fully
  * - Service verifies token signature (lightweight check)
- * 
+ *
  * To disable token verification (trust gateway headers):
  * - Set: token.verification.enabled=false in application.yml
  * - Or set environment variable: TOKEN_VERIFICATION_ENABLED=false
@@ -61,7 +61,8 @@ public class SecurityConfig implements WebMvcConfigurer {
                     .excludePathPatterns(
                             "/actuator/**",
                             "/health",
-                            "/api-docs/**",
+                            "/v3/api-docs",
+                            "/v3/api-docs/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html");
         } catch (Exception e) {

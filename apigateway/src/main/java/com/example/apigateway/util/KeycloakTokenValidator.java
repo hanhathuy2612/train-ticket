@@ -1,244 +1,219 @@
-//package com.example.apigateway.util;
-//
-//import java.math.BigInteger;
-//import java.security.KeyFactory;
-//import java.security.PublicKey;
-//import java.security.spec.RSAPublicKeySpec;
-//import java.util.Base64;
-//import java.util.HashSet;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.Set;
-//
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
-//import org.springframework.stereotype.Component;
-//import org.springframework.web.reactive.function.client.WebClient;
-//
-//import com.example.apigateway.config.KeycloakConfig;
-//import com.fasterxml.jackson.databind.JsonNode;
-//import com.fasterxml.jackson.databind.ObjectMapper;
-//
-//import io.jsonwebtoken.Claims;
-//import io.jsonwebtoken.ExpiredJwtException;
-//import io.jsonwebtoken.Jwts;
-//import io.jsonwebtoken.security.SecurityException;
-//import lombok.RequiredArgsConstructor;
-//import reactor.core.publisher.Mono;
-//
-///**
-// * Validates Keycloak JWT tokens
-// *
-// * This class validates tokens by:
-// * 1. Fetching public keys from Keycloak's JWKS endpoint
-// * 2. Verifying token signature
-// * 3. Validating token claims (issuer, audience, expiration)
-// */
-//@Component
-//@RequiredArgsConstructor
-//public class KeycloakTokenValidator {
-//
-//    private static final Logger logger = LoggerFactory.getLogger(KeycloakTokenValidator.class);
-//
-//    private final KeycloakConfig keycloakConfig;
-//    private final WebClient webClient;
-//    private final ObjectMapper objectMapper;
-//
-//    /**
-//     * Validates a Keycloak JWT token
-//     *
-//     * @param token The JWT token to validate
-//     * @return true if token is valid, false otherwise
-//     */
-//    public boolean validateToken(String token) {
-//        try {
-//            // Parse token without verification first to get header
-//            String[] parts = token.split("\\.");
-//            if (parts.length != 3) {
-//                logger.debug("Invalid token format");
-//                return false;
-//            }
-//
-//            // Decode header to get key ID (kid)
-//            String headerJson = new String(Base64.getUrlDecoder().decode(parts[0]));
-//            JsonNode header = objectMapper.readTree(headerJson);
-//            String kid = header.get("kid").asText();
-//
-//            // Get public key from Keycloak
-//            PublicKey publicKey = getPublicKey(kid).block();
-//            if (publicKey == null) {
-//                logger.warn("Could not retrieve public key from Keycloak");
-//                return false;
-//            }
-//
-//            // Verify token signature and parse claims
-//            Claims claims = Jwts.parser()
-//                    .verifyWith(publicKey)
-//                    .build()
-//                    .parseSignedClaims(token)
-//                    .getPayload();
-//
-//            // Validate issuer
-//            String issuer = claims.getIssuer();
-//            String expectedIssuer = keycloakConfig.getRealmPublicKeyUrl();
-//            if (!issuer.equals(expectedIssuer)) {
-//                logger.warn("Token issuer mismatch. Expected: {}, Got: {}", expectedIssuer, issuer);
-//                return false;
-//            }
-//
-//            // Validate audience (client ID)
-//            String audience = claims.getAudience().stream().findFirst().orElse("");
-//            if (!audience.equals(keycloakConfig.getClientId())) {
-//                logger.warn("Token audience mismatch. Expected: {}, Got: {}", keycloakConfig.getClientId(), audience);
-//                return false;
-//            }
-//
-//            // Check expiration
-//            if (claims.getExpiration().before(new java.util.Date())) {
-//                logger.debug("Token has expired");
-//                return false;
-//            }
-//
-//            return true;
-//
-//        } catch (ExpiredJwtException e) {
-//            logger.debug("Token expired: {}", e.getMessage());
-//            return false;
-//        } catch (SecurityException e) {
-//            logger.debug("Token signature validation failed: {}", e.getMessage());
-//            return false;
-//        } catch (Exception e) {
-//            logger.error("Error validating Keycloak token", e);
-//            return false;
-//        }
-//    }
-//
-//    /**
-//     * Extracts username (preferred_username) from token
-//     */
-//    public String extractUsername(String token) {
-//        try {
-//            Map<String, Object> claims = parseTokenPayload(token);
-//            return (String) claims.get("preferred_username");
-//        } catch (Exception e) {
-//            logger.error("Error extracting username from token", e);
-//            return null;
-//        }
-//    }
-//
-//    /**
-//     * Extracts user ID (sub) from token
-//     */
-//    public String extractUserId(String token) {
-//        try {
-//            Map<String, Object> claims = parseTokenPayload(token);
-//            return (String) claims.get("sub"); // sub claim
-//        } catch (Exception e) {
-//            logger.error("Error extracting user ID from token", e);
-//            return null;
-//        }
-//    }
-//
-//    /**
-//     * Extracts roles from token
-//     * Keycloak roles are in realm_access.roles and resource_access.{clientId}.roles
-//     */
-//    @SuppressWarnings("unchecked")
-//    public Set<String> extractRoles(String token) {
-//        Set<String> roles = new HashSet<>();
-//        try {
-//            Map<String, Object> claims = parseTokenPayload(token);
-//
-//            // Extract realm roles
-//            Map<String, Object> realmAccess = (Map<String, Object>) claims.get("realm_access");
-//            if (realmAccess != null) {
-//                List<String> realmRoles = (List<String>) realmAccess.get("roles");
-//                if (realmRoles != null) {
-//                    roles.addAll(realmRoles);
-//                }
-//            }
-//
-//            // Extract client-specific roles
-//            Map<String, Object> resourceAccess = (Map<String, Object>) claims.get("resource_access");
-//            if (resourceAccess != null) {
-//                Map<String, Object> clientAccess = (Map<String, Object>) resourceAccess
-//                        .get(keycloakConfig.getClientId());
-//                if (clientAccess != null) {
-//                    List<String> clientRoles = (List<String>) clientAccess.get("roles");
-//                    if (clientRoles != null) {
-//                        roles.addAll(clientRoles);
-//                    }
-//                }
-//            }
-//
-//        } catch (Exception e) {
-//            logger.error("Error extracting roles from token", e);
-//        }
-//        return roles;
-//    }
-//
-//    /**
-//     * Parses token payload as Map (without verification, for extracting claims
-//     * only)
-//     */
-//    @SuppressWarnings("unchecked")
-//    private Map<String, Object> parseTokenPayload(String token) {
-//        try {
-//            String[] parts = token.split("\\.");
-//            if (parts.length != 3) {
-//                throw new IllegalArgumentException("Invalid token format");
-//            }
-//            String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
-//            return objectMapper.readValue(payload, Map.class);
-//        } catch (Exception e) {
-//            throw new RuntimeException("Error parsing token payload", e);
-//        }
-//    }
-//
-//    /**
-//     * Gets public key from Keycloak JWKS endpoint
-//     */
-//    private Mono<PublicKey> getPublicKey(String kid) {
-//        return webClient.get()
-//                .uri(keycloakConfig.getJwksUrl())
-//                .retrieve()
-//                .bodyToMono(JsonNode.class)
-//                .map(jwks -> {
-//                    JsonNode keys = jwks.get("keys");
-//                    if (keys == null || !keys.isArray()) {
-//                        throw new RuntimeException("Invalid JWKS response: no keys array");
-//                    }
-//                    for (JsonNode key : keys) {
-//                        JsonNode kidNode = key.get("kid");
-//                        if (kidNode != null && kid != null && kidNode.asText().equals(kid)) {
-//                            return buildPublicKey(key);
-//                        }
-//                    }
-//                    throw new RuntimeException("Key with kid " + kid + " not found");
-//                })
-//                .doOnError(e -> logger.error("Error fetching public key from Keycloak", e));
-//    }
-//
-//    /**
-//     * Builds RSA public key from JWK
-//     */
-//    private PublicKey buildPublicKey(JsonNode keyNode) {
-//        try {
-//            String modulus = keyNode.get("n").asText();
-//            String exponent = keyNode.get("e").asText();
-//
-//            byte[] nBytes = Base64.getUrlDecoder().decode(modulus);
-//            byte[] eBytes = Base64.getUrlDecoder().decode(exponent);
-//
-//            BigInteger n = new BigInteger(1, nBytes);
-//            BigInteger e = new BigInteger(1, eBytes);
-//
-//            RSAPublicKeySpec spec = new RSAPublicKeySpec(n, e);
-//            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-//            return keyFactory.generatePublic(spec);
-//        } catch (Exception e) {
-//            throw new RuntimeException("Error building public key", e);
-//        }
-//    }
-//
-//}
+package com.example.apigateway.util;
+
+import com.example.apigateway.config.KeycloakConfig;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.SecurityException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
+import java.math.BigInteger;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.RSAPublicKeySpec;
+import java.util.Base64;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+/**
+ * Keycloak JWT Token Validator for API Gateway
+ * <p>
+ * This utility validates JWT tokens issued by Keycloak by:
+ * 1. Fetching public keys from Keycloak JWKS endpoint
+ * 2. Verifying token signature
+ * 3. Validating issuer, audience, and expiration
+ * 4. Caching public keys to avoid repeated fetches
+ */
+@Slf4j
+@Component
+public class KeycloakTokenValidator {
+    private final WebClient webClient;
+    private final ObjectMapper objectMapper;
+    private final KeycloakConfig keycloakConfig;
+
+    // Cache for public keys (key: kid, value: PublicKey)
+    private final ConcurrentMap<String, PublicKey> publicKeyCache = new ConcurrentHashMap<>();
+
+    public KeycloakTokenValidator(WebClient webClient, ObjectMapper objectMapper, KeycloakConfig keycloakConfig) {
+        this.webClient = webClient;
+        this.objectMapper = objectMapper;
+        this.keycloakConfig = keycloakConfig;
+    }
+
+    /**
+     * Validates a JWT token from Keycloak
+     *
+     * @param token The JWT token to validate
+     * @return Mono<Claims> containing the token claims if valid, or Mono.empty() if invalid
+     */
+    public Mono<Claims> validateToken(String token) {
+        try {
+            // Parse token to get header
+            String[] parts = token.split("\\.");
+            if (parts.length != 3) {
+                log.debug("Invalid token format");
+                return Mono.empty();
+            }
+
+            // Decode header to get key ID (kid)
+            String headerJson = new String(Base64.getUrlDecoder().decode(parts[0]));
+            JsonNode header = objectMapper.readTree(headerJson);
+            JsonNode kidNode = header.get("kid");
+            if (kidNode == null) {
+                log.debug("Token missing kid in header");
+                return Mono.empty();
+            }
+            String kid = kidNode.asText();
+
+            // Get public key (from cache or fetch from Keycloak)
+            return getPublicKey(kid)
+                .flatMap(publicKey -> {
+                    if (publicKey == null) {
+                        log.warn("Could not retrieve public key for kid: {}", kid);
+                        return Mono.empty();
+                    }
+
+                    try {
+                        // Verify token signature and parse claims
+                        Claims claims = Jwts.parser()
+                            .verifyWith(publicKey)
+                            .build()
+                            .parseSignedClaims(token)
+                            .getPayload();
+
+                        // Validate issuer
+                        String issuer = claims.getIssuer();
+                        String expectedIssuer = keycloakConfig.getRealmPublicKeyUrl();
+                        if (!issuer.equals(expectedIssuer)) {
+                            log.warn("Token issuer mismatch. Expected: {}, Got: {}", expectedIssuer, issuer);
+                            return Mono.empty();
+                        }
+
+                        // Validate audience (client ID)
+                        String audience = claims.getAudience().stream()
+                            .findFirst()
+                            .orElse("");
+                        if (!audience.equals(keycloakConfig.getClientId())) {
+                            log.warn("Token audience mismatch. Expected: {}, Got: {}",
+                                keycloakConfig.getClientId(), audience);
+                            return Mono.empty();
+                        }
+
+                        // Check expiration
+                        if (claims.getExpiration() != null &&
+                            claims.getExpiration().before(new java.util.Date())) {
+                            log.debug("Token has expired");
+                            return Mono.empty();
+                        }
+
+                        return Mono.just(claims);
+
+                    } catch (ExpiredJwtException e) {
+                        log.debug("Token expired: {}", e.getMessage());
+                        return Mono.empty();
+                    } catch (SecurityException e) {
+                        log.debug("Token signature validation failed: {}", e.getMessage());
+                        return Mono.empty();
+                    } catch (Exception e) {
+                        log.error("Error validating token", e);
+                        return Mono.empty();
+                    }
+                });
+
+        } catch (Exception e) {
+            log.error("Error parsing token", e);
+            return Mono.empty();
+        }
+    }
+
+    /**
+     * Gets public key from cache or fetches from Keycloak JWKS endpoint
+     *
+     * @param kid Key ID from JWT header
+     * @return Mono<PublicKey> containing the public key, or Mono.empty() if not found
+     */
+    private Mono<PublicKey> getPublicKey(String kid) {
+        // Check cache first
+        PublicKey cachedKey = publicKeyCache.get(kid);
+        if (cachedKey != null) {
+            return Mono.just(cachedKey);
+        }
+
+        // Fetch from Keycloak
+        String jwksUrl = keycloakConfig.getJwksUrl();
+        log.debug("Fetching public key from Keycloak JWKS endpoint: {}", jwksUrl);
+
+        return webClient.get()
+            .uri(jwksUrl)
+            .retrieve()
+            .bodyToMono(JsonNode.class)
+            .flatMap(jwks -> {
+                JsonNode keys = jwks.get("keys");
+                if (keys == null || !keys.isArray()) {
+                    log.error("Invalid JWKS response: no keys array");
+                    return Mono.empty();
+                }
+
+                for (JsonNode key : keys) {
+                    JsonNode kidNode = key.get("kid");
+                    if (kidNode != null && kid != null && kidNode.asText().equals(kid)) {
+                        try {
+                            PublicKey publicKey = buildPublicKey(key);
+                            // Cache the key
+                            publicKeyCache.put(kid, publicKey);
+                            log.debug("Successfully fetched and cached public key for kid: {}", kid);
+                            return Mono.just(publicKey);
+                        } catch (Exception e) {
+                            log.error("Error building public key", e);
+                            return Mono.empty();
+                        }
+                    }
+                }
+
+                log.warn("Key with kid {} not found in JWKS", kid);
+                return Mono.<PublicKey>empty();
+            })
+            .onErrorResume(e -> {
+                log.error("Error fetching public key from Keycloak", e);
+                return Mono.empty();
+            });
+    }
+
+    /**
+     * Builds RSA public key from JWK
+     *
+     * @param keyNode JSON node containing the key information
+     * @return PublicKey instance
+     */
+    private PublicKey buildPublicKey(JsonNode keyNode) {
+        try {
+            String modulus = keyNode.get("n").asText();
+            String exponent = keyNode.get("e").asText();
+
+            byte[] nBytes = Base64.getUrlDecoder().decode(modulus);
+            byte[] eBytes = Base64.getUrlDecoder().decode(exponent);
+
+            BigInteger n = new BigInteger(1, nBytes);
+            BigInteger e = new BigInteger(1, eBytes);
+
+            RSAPublicKeySpec spec = new RSAPublicKeySpec(n, e);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            return keyFactory.generatePublic(spec);
+        } catch (Exception e) {
+            throw new RuntimeException("Error building public key", e);
+        }
+    }
+
+    /**
+     * Clears the public key cache (useful for testing or key rotation)
+     */
+    public void clearCache() {
+        publicKeyCache.clear();
+        log.info("Public key cache cleared");
+    }
+}
