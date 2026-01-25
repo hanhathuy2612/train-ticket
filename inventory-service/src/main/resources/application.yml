@@ -72,3 +72,23 @@ springdoc:
     enabled: true
     operations-sorter: method
     tags-sorter: alpha
+
+# ============================================================================
+# KEYCLOAK CONFIGURATION (for token verification)
+# ============================================================================
+# Used by TokenVerificationInterceptor to verify tokens forwarded from gateway
+keycloak:
+  server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+  realm: ${KEYCLOAK_REALM:train-ticket}
+
+# Token verification setting
+# Set to false to trust headers from gateway (for internal network)
+# In production with mTLS/internal network, you can set this to false
+token:
+  verification:
+    enabled: ${TOKEN_VERIFICATION_ENABLED:true}
+
+# Gateway URL for OpenAPI documentation
+# This ensures Swagger UI generates curl commands with Gateway URL
+gateway:
+  url: ${GATEWAY_URL:http://localhost:8189}

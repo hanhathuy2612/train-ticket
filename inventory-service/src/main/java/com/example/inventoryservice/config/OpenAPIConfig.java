@@ -7,11 +7,18 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 public class OpenAPIConfig {
+
+    @Value("${gateway.url:http://localhost:8189}")
+    private String gatewayUrl;
 
     @Bean
     public OpenAPI customOpenAPI() {
@@ -26,6 +33,16 @@ public class OpenAPIConfig {
                 .license(new License()
                     .name("Apache 2.0")
                     .url("https://www.apache.org/licenses/LICENSE-2.0.html")))
+            // Configure servers to use Gateway URL
+            // This ensures Swagger UI generates curl commands with Gateway URL
+            .servers(List.of(
+                new Server()
+                    .url(gatewayUrl + "/api/inventory")
+                    .description("API Gateway (Recommended)"),
+                new Server()
+                    .url("http://localhost:8082")
+                    .description("Direct Service (Development Only)")
+            ))
             .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
             .components(new Components()
                 .addSecuritySchemes("Bearer Authentication",

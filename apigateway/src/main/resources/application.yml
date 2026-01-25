@@ -32,6 +32,29 @@ spring:
       # Server WebFlux configuration (NEW format for Spring Cloud 2025.0.0+)
       server:
         webflux:
+          # Global CORS configuration (MUST be inside server.webflux for Spring Cloud 2025.0.0+)
+          # This ensures CORS is handled at Gateway layer for all routes
+          globalcors:
+            # IMPORTANT: Enable this to handle OPTIONS preflight requests
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - "http://localhost:8189"  # Swagger UI on Gateway (local)
+                  - "http://26.58.67.5:8189" # Swagger UI on Gateway (remote)
+                  - "http://localhost:4200"   # Angular frontend
+                  - "http://localhost:3000"  # React frontend
+                  - "http://26.58.67.5:8082"  # Direct service access (if needed)
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - PATCH
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowCredentials: true
+                maxAge: 3600
           # Route definitions
           # IMPORTANT: OpenAPI routes must be defined BEFORE service routes
           # to ensure /api/*/v3/api-docs paths are matched first

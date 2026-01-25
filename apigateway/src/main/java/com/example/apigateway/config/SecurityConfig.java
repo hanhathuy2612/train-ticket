@@ -51,10 +51,17 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allowed origins (cannot use "*" with allowCredentials: true)
+        // Allowed origins
+        // Include Swagger UI origin and common frontend origins
+        // Cannot use "*" with allowCredentials: true, so we specify exact origins
+        // Add your server IP/origin here if accessing from different host
         configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:4200",
-            "http://localhost:3000"));
+            "http://localhost:8189",  // Swagger UI on Gateway (local)
+            "http://26.58.67.5:8189", // Swagger UI on Gateway (remote)
+            "http://localhost:4200", // Angular frontend
+            "http://localhost:3000",  // React frontend
+            "http://26.58.67.5:8082"  // Direct service access (if needed)
+        ));
 
         // Allowed HTTP methods
         configuration.setAllowedMethods(Arrays.asList(
@@ -62,7 +69,7 @@ public class SecurityConfig {
 
         // Allowed headers
         configuration.setAllowedHeaders(List.of(
-            "*"));
+            "*")); // Allow all headers including Authorization, Content-Type, etc.
 
         // Exposed headers (headers that browser can access)
         configuration.setExposedHeaders(Arrays.asList(
@@ -70,11 +77,14 @@ public class SecurityConfig {
             "X-User-Id",
             "X-User-Name",
             "X-User-Roles",
+            "X-Auth-Token",
             "X-RateLimit-Limit",
             "X-RateLimit-Remaining",
-            "X-RateLimit-Reset"));
+            "X-RateLimit-Reset",
+            "X-Correlation-Id"));
 
         // Allow credentials (cookies, authorization headers)
+        // Required for Swagger UI to send Authorization header
         configuration.setAllowCredentials(true);
 
         // Max age for preflight cache (in seconds)
